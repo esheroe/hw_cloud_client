@@ -12,6 +12,10 @@
 struct Point {
 	int x;
 	int y;
+	
+	bool operator==(const Point& p) {
+		return (x == p.x && y == p.y);
+	}
 };
 
 struct TeamInfo {
@@ -37,21 +41,20 @@ struct Power {
 	int value;
 };
 
-/*************************
-0：地图可行区域
-1 - 5：分数奖励
-10 - 17：player信息
-8：障碍物
-虫洞id的ascii码：表示虫洞对
-20 - 23表示滑梯的上下左右
 
-map能装25x25个数，用w和h对map做约束
-*/
 struct GameMap {
 	int h;
 	int w;
-	//      Y   X
-	int map[25][25] = {0};
+	
+	int map[25][25];
+};
+
+struct PlayerInfo {
+	int id;
+	int score;
+	int sleep;
+	int team;
+	Point point;
 };
 
 
@@ -72,6 +75,58 @@ struct SubAction
 {
 	DIRECT moveDirect;
 };
+/*****************************************************
+* 全局地图
+* 1、因为涉及到类之间的交互，
+* 2、当搜集到得分点后，需要管理得分点的坐标，全局地图只展示地图信息
+* 3、全局地图中维护一个动态地图，作为场地当前信息
+* 4、全局地图只有一个，因此使用单例
+
+
+0：地图可行区域
+1 - 5：分数奖励
+10 - 17：player信息
+8：障碍物
+虫洞id的ascii码：表示虫洞对
+20 - 23表示滑梯的上下左右
+
+map能装25x25个数，用w和h对map做约束
+******************************************************/
+class GlobalMap {
+
+// singleton
+public:
+	~GlobalMap() {}
+	GlobalMap(const GlobalMap&) = delete;
+	GlobalMap& operator=(const GlobalMap&) = delete;
+	static GlobalMap& Instance() {
+		static GlobalMap instance;
+		return instance;
+	}
+private:
+	GlobalMap(){}//构造函数私有化
+// singleton
+public:
+	void InitMap(int y, int x);
+	void UpdateMap(std::vector<Power> powers, std::vector<PlayerInfo> playerInfos);
+	void PrintMap();
+	void PrintMap2();
+
+public:
+	std::vector<Power> mPowers;//已经找到的得分点的坐标保存下来
+	int w;//X
+	int h;//Y
+	
+
+	//      Y   X
+	int map[25][25] = {0};  //原始地图，只更新power信息
+	int map2[25][25] = {0}; //动态地图，只实时更新player信息
+};
+
+
+/************************
+*         ActMsg
+************************/
 
 class ActMsg
 {
@@ -88,6 +143,10 @@ public:
     cJSON* subAct;
     cJSON* move;
 };
+
+/************************
+*         LegStartMsg
+************************/
 
 class LegStartMsg
 {
@@ -114,8 +173,11 @@ public:
 	std::vector<Point> mMeteors;
 	std::vector<WormholePair> mWormholePairs;
 	std::vector<Tunnel> mTunnels;
-	GameMap mGameMap;
 };
+
+/************************
+*         RoundMsg
+************************/
 
 class RoundMsg
 {
@@ -128,12 +190,18 @@ private:
     void DecodePlayers(cJSON *players);
     void DecodeTeams(cJSON *teams);   
     void DecodePower(cJSON *coins);
+	void UpdateMap();
 
 public:
     cJSON* root;
     int round_id;
+	std::vector<Power> powers;
+	std::vector<PlayerInfo> playerInfos;
 };
 
+/************************
+*         LegEndMsg
+************************/
 class LegEndMsg
 {
 public:
@@ -144,6 +212,9 @@ public:
     cJSON* root;
 };
 
+/************************
+*         GameEndMsg
+************************/
 class GameEndMsg
 {
 public:

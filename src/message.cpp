@@ -35,10 +35,9 @@ void ActMsg::PackActMsg(char* actMsg, int maxMsgLenth)
 }
 
 
-/**
-Leg Start Msg
-*/
-
+/****************************
+* LegStartMsg
+*****************************/
 void LegStartMsg::DecodeMessge(int& myTeamId,int myPlayerId[4])
 {
     cJSON* msg_data = cJSON_GetObjectItem(root,"msg_data");
@@ -302,7 +301,7 @@ void LegStartMsg::GetTunnel(int& myTeamId)
 }
 
 
-/*************************
+/*
 0：地图可行区域
 1 - 5：分数奖励
 10 - 17：player信息
@@ -311,29 +310,30 @@ void LegStartMsg::GetTunnel(int& myTeamId)
 20 - 23表示滑梯的上下左右
 h->y
 w->x
-**************************/
+*/
 void LegStartMsg::GenerateMap(int h, int w) {
 
 	//获取宽高
-	mGameMap.h = h;
-	mGameMap.w = w;
-
+	GlobalMap& mGlobalMap = GlobalMap::Instance();
+	mGlobalMap.InitMap(h, w);
 	//生成陨石
 	for (auto metoer : mMeteors) {
-		mGameMap.map[metoer.y][metoer.x] = 8;
+		mGlobalMap.map[metoer.y][metoer.x] = 8;
 	}
 
 	//生成通道
 	for (auto tuunel : mTunnels) {
-		mGameMap.map[tuunel.point.y][tuunel.point.x] = tuunel.direct;
+		mGlobalMap.map[tuunel.point.y][tuunel.point.x] = tuunel.direct;
 	}
 
 	//生成虫洞
 	std::cout << "====generated wormhole====" << std::endl;
 
 	for (auto wormhole : mWormholePairs) {
-		mGameMap.map[wormhole.point1.y][wormhole.point1.x] = wormhole.name1;
-		mGameMap.map[wormhole.point2.y][wormhole.point2.x] = wormhole.name2;
+
+
+		mGlobalMap.map[wormhole.point1.y][wormhole.point1.x] = wormhole.name1;
+		mGlobalMap.map[wormhole.point2.y][wormhole.point2.x] = wormhole.name2;
 		std::cout << "point1: x: " << wormhole.point1.x << ",y: " << wormhole.point1.y
 			<< " name: " << wormhole.name1
 			<< "\t point2:x " << wormhole.point2.x << ",y: " << wormhole.point2.y
@@ -341,13 +341,14 @@ void LegStartMsg::GenerateMap(int h, int w) {
 			<< std::endl;
 	}
 
-	std::cout << "====generated map====" << std::endl;
-	for (int i = 0; i < h; i++) {
-		for (int j = 0; j < w; j++) {
-			std::cout << mGameMap.map[i][j] << "  ";
-		}
-		std::cout << std::endl;
-	}
+	std::cout << "====generated global map====" << std::endl;
+	//for (int i = 0; i < h; i++) {
+	//	for (int j = 0; j < w; j++) {
+	//		std::cout << mGlobalMap.map[i][j] << "  ";
+	//	}
+	//	std::cout << std::endl;
+	//}
+	mGlobalMap.PrintMap();
 }
 
 void LegStartMsg::GetCloud(int& myTeamId)
@@ -378,9 +379,9 @@ void LegStartMsg::GetCloud(int& myTeamId)
     
 }
 
-/**
+/*******************************
 Round Msg
-*/
+*******************************/
 
 void RoundMsg::DecodePower(cJSON *power)
 {
@@ -394,6 +395,13 @@ void RoundMsg::DecodePower(cJSON *power)
             cJSON* y     = cJSON_GetObjectItem(powerInfo,"y");
             cJSON* point = cJSON_GetObjectItem(powerInfo,"point");
             if((NULL == x)||(NULL == y)||(NULL == powerInfo)) return;
+			
+			Power p;
+			p.point.x = x->valueint;
+			p.point.y = y->valueint;
+			p.value = point->valueint;
+
+			powers.push_back(p);
 
             //使用字段(x->valueint,y->valueint,point->valueint)
         }
@@ -415,7 +423,15 @@ void RoundMsg::DecodePlayers(cJSON *players)
             cJSON* x = cJSON_GetObjectItem(playerInfo,"x");
             cJSON* y = cJSON_GetObjectItem(playerInfo,"y");
             if((NULL == id)||(NULL == score)) return;
+			PlayerInfo p;
+			p.id = id->valueint + 10;//10-17为playerid
+			p.score = score->valueint;
+			p.sleep = sleep->valueint;
+			p.team = team->valueint;
+			p.point.x = x->valueint;
+			p.point.y = y->valueint;
 
+			playerInfos.push_back(p);
             //使用字段(x->valueint,y->valueint,0)
         }
     }
@@ -438,6 +454,14 @@ void RoundMsg::DecodeTeams(cJSON *teams)
             //使用字段(id->valueint,point->valueint,remain_life->valueint)
         }
     }
+}
+
+void RoundMsg::UpdateMap() {
+
+	GlobalMap& globalMap = GlobalMap::Instance();
+
+	globalMap.UpdateMap(powers, playerInfos);
+	
 }
 
 void RoundMsg::DecodeMessge()
@@ -463,6 +487,79 @@ void RoundMsg::DecodeMessge()
     cJSON* power = cJSON_GetObjectItem(msg_data,"power");
     if(NULL == power) return;
     DecodePower(power);
+
+	//更新地图
+	UpdateMap();
+
+	std::cout << "=====update Map=======" << std::endl;
+	if (round_id->valueint % 10 == 0) {
+		GlobalMap::Instance().PrintMap2();
+	}
+	
+}
+
+void GlobalMap::InitMap(int y, int x) {
+	h = y;
+	w = x;
+}
+
+void GlobalMap::UpdateMap(std::vector<Power> powers, std::vector<PlayerInfo> playerInfos) {
+	// 先将power给打印出来，后续查找应该通过vector去查找，不应该从地图上查找
+	for (auto power : powers) {
+		bool isAdd = true;
+		for (auto p : mPowers) {
+			if (power.point == p.point) {
+				isAdd = false;
+				break;
+			}
+		}
+		if (isAdd) {
+			mPowers.push_back(power);
+		}
+	}
+	for (auto power : mPowers) {
+		map[power.point.y][power.point.x] = power.value;
+	}
+
+	memcpy(map2, map, sizeof(map));
+
+	for (auto info : playerInfos) {
+		map2[info.point.y][info.point.x] = info.id;
+	}
+}
+
+void GlobalMap::PrintMap() {
+	for (int i = 0; i < h; i++) {
+		for (int j = 0; j < w; j++) {
+			std::cout << map[i][j];
+			if (map[i][j] > 9) {
+				std::cout << " ";
+			}
+			else {
+				std::cout << "  ";
+			}
+		}
+		std::cout << std::endl;
+	}
+}
+
+void GlobalMap::PrintMap2() {
+	for (int i = 0; i < h; i++) {
+		for (int j = 0; j < w; j++) {
+			if (j == 0) {
+				std::cout << "      ";
+			}
+			std::cout << map2[i][j];
+			
+			if (map2[i][j] > 9) {
+				std::cout << " ";
+			}
+			else {
+				std::cout << "  ";
+			}
+		}
+		std::cout << std::endl;
+	}
 }
 
 
