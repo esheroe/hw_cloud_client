@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <iostream>
+
 struct Point {
 	int x;
 	int y;
@@ -17,10 +18,12 @@ struct Point {
 	}
 };
 
+// 表示队伍优势能力 0 表示think，1表示beat
 struct TeamInfo {
 	int id;
 	int players[4];
-	char* force;
+	int force;
+	   
 };
 
 struct WormholePair {
@@ -74,6 +77,8 @@ struct SubAction
 {
 	DIRECT moveDirect;
 };
+
+
 /*****************************************************
 * 全局地图
 * 1、因为涉及到类之间的交互，
@@ -106,20 +111,32 @@ private:
 	GlobalMap(){}//构造函数私有化
 // singleton
 public:
-	void InitMap(int y, int x);
-	void UpdateMap(std::vector<Power> powers, std::vector<PlayerInfo> playerInfos);
+	void InitMap(int y, int x, int v);
+	void UpdateMap(std::vector<Power> powers, std::vector<PlayerInfo> playerInfos, int round, int mode);
 	void PrintMap();
 	void PrintMap2();
+	bool IsOurPower() { return ourTeamInfo.force == mMode; } // 是否当前为我方优势
 
 public:
 	std::vector<Power> mPowers;//已经找到的得分点的坐标保存下来
+	std::vector<WormholePair> mWormholePairs; // 虫洞
+	std::vector<Tunnel> mTunnels; //通道
 	int w;//X
 	int h;//Y
-	
+
+	TeamInfo ourTeamInfo;
 
 	//      Y   X
-	int map[25][25] = {0};  //原始地图，只更新power信息,初始状态为全可行，因此，在生成地图时需要注意，超出地图范围时为障碍物处理
+	int map[25][25] = {0};  //原始地图，只更新power信息
 	int map2[25][25] = {0}; //动态地图，只实时更新player信息
+
+	//round
+	std::vector<PlayerInfo> ourPlayerInfo; // 我方队员信息
+	std::vector<PlayerInfo> oppPlayerInfo; // 视野内敌方队员信息
+	int mMode; // 表示当前优势能力 0 表示think，1表示beat
+	int roundId;
+	int vision; // 视野范围
+
 };
 
 
@@ -141,6 +158,8 @@ public:
     cJSON* actions;
     cJSON* subAct;
     cJSON* move;
+	const char* DirectCommand[5] = { "up","down","left","right","" };
+
 };
 
 /************************
@@ -159,7 +178,7 @@ public:
     void GetWormhole(int& myTeamId);                     //更新了mWormholes信息
     void GetTunnel(int& myTeamId);                       //更新了mTunnels信息
     void GetCloud(int& myTeamId);                        //协议里应该是没有这个的
-	void GenerateMap(int h, int w);                      //当所有信息都生成后，用这个生成map信息
+	void GenerateMap(int h, int w, int v);                      //当所有信息都生成后，用这个生成map信息
 private:
 
 public:
@@ -168,7 +187,7 @@ public:
     cJSON* root;
 	int h;
 	int w;
-	TeamInfo mTeamInfo;
+	TeamInfo mTeamInfo;       //我方teaminfo
 	std::vector<Point> mMeteors;
 	std::vector<WormholePair> mWormholePairs;
 	std::vector<Tunnel> mTunnels;
@@ -194,6 +213,7 @@ private:
 public:
     cJSON* root;
     int round_id;
+	int mode;
 	std::vector<Power> powers;
 	std::vector<PlayerInfo> playerInfos;
 };
