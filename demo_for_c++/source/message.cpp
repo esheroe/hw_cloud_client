@@ -2,7 +2,7 @@
 #include "message.h"
 
 
-const char* direct[] = {"up","down","left","right",""};
+
 
 ActMsg::ActMsg(int roundId)
 {
@@ -21,7 +21,7 @@ void ActMsg::AddSubAction(int team, int player, SubAction& act)
     cJSON_AddItemToObject(subAct, "move", move=cJSON_CreateArray());
     if (act.moveDirect < NO_MOVE)
     {
-        cJSON_AddItemToArray(move,cJSON_CreateString(direct[act.moveDirect]));
+        cJSON_AddItemToArray(move,cJSON_CreateString(DirectCommand[act.moveDirect]));
     }
 }
 
@@ -62,7 +62,7 @@ void LegStartMsg::DecodeMessge(int& myTeamId,int myPlayerId[4])
      GetTunnel(myTeamId);
 	 //GetCloud(myTeamId);
      GetMyTeamInfo(myTeamId,myPlayerId);
-	 GenerateMap(height->valueint, width->valueint);
+	 GenerateMap(height->valueint, width->valueint, vision->valueint);
 
 
      
@@ -107,7 +107,15 @@ void LegStartMsg::GetMyTeamInfo(int& myTeamId,int myPlayerId[4])
             }
 			cJSON* force = cJSON_GetObjectItem(teamInfo, "force");
 			if (NULL == force) return;
-			mTeamInfo.force = force->valuestring;
+			if (myTeamId == id->valueint) {
+				if (force->valuestring == "beat") {
+					mTeamInfo.force = 1;
+				}
+				else {// think
+					mTeamInfo.force = 0;
+				}
+			}
+			
         }
     }
 }
@@ -205,6 +213,7 @@ void LegStartMsg::GetWormhole(int& myTeamId)
 						w.point2.x = x->valueint;
 
 						mWormholePairs.push_back(w);
+						GlobalMap::Instance().mWormholePairs.push_back(w);
 
 						//置标志位
 						temp[i][0] = 0;
@@ -292,6 +301,7 @@ void LegStartMsg::GetTunnel(int& myTeamId)
 			}			
         }
 		mTunnels.push_back(t);
+		GlobalMap::Instance().mTunnels.push_back(t);
     }
 	/*for (auto tunnel : mTunnels) {
 		std::cout << "x: " << tunnel.point.x << ",y: " << tunnel.point.y
@@ -311,11 +321,11 @@ void LegStartMsg::GetTunnel(int& myTeamId)
 h->y
 w->x
 */
-void LegStartMsg::GenerateMap(int h, int w) {
+void LegStartMsg::GenerateMap(int h, int w, int v) {
 
 	//获取宽高
 	GlobalMap& mGlobalMap = GlobalMap::Instance();
-	mGlobalMap.InitMap(h, w);
+	mGlobalMap.InitMap(h, w, v);
 	//生成陨石
 	for (auto metoer : mMeteors) {
 		mGlobalMap.map[metoer.y][metoer.x] = 8;
@@ -330,8 +340,6 @@ void LegStartMsg::GenerateMap(int h, int w) {
 	std::cout << "====generated wormhole====" << std::endl;
 
 	for (auto wormhole : mWormholePairs) {
-
-
 		mGlobalMap.map[wormhole.point1.y][wormhole.point1.x] = wormhole.name1;
 		mGlobalMap.map[wormhole.point2.y][wormhole.point2.x] = wormhole.name2;
 		std::cout << "point1: x: " << wormhole.point1.x << ",y: " << wormhole.point1.y
@@ -340,6 +348,9 @@ void LegStartMsg::GenerateMap(int h, int w) {
 			<< " name: " << wormhole.name2
 			<< std::endl;
 	}
+
+	//获取队伍信息
+	mGlobalMap.ourTeamInfo = mTeamInfo;
 
 	std::cout << "====generated global map====" << std::endl;
 	//for (int i = 0; i < h; i++) {
@@ -460,7 +471,7 @@ void RoundMsg::UpdateMap() {
 
 	GlobalMap& globalMap = GlobalMap::Instance();
 
-	globalMap.UpdateMap(powers, playerInfos);
+	globalMap.UpdateMap(powers, playerInfos, round_id, mode);
 	
 }
 
@@ -472,6 +483,15 @@ void RoundMsg::DecodeMessge()
     cJSON* round_id = cJSON_GetObjectItem(msg_data,"round_id");
     if(NULL == round_id) return;
 	this->round_id = round_id->valueint;
+
+	cJSON* mode = cJSON_GetObjectItem(msg_data, "mode");
+	if (NULL == mode) return;
+		if (mode->valuestring == "beat") {
+			this->mode = 1;
+		}
+		else {// think		
+			this->mode = 0;
+		}	
 
 	printf("\r\n ============ roundId: %d ============ \r\n ", round_id->valueint);
 
@@ -498,13 +518,20 @@ void RoundMsg::DecodeMessge()
 	
 }
 
-void GlobalMap::InitMap(int y, int x) {
+void GlobalMap::InitMap(int y, int x, int v) {
 	h = y;
 	w = x;
+	vision = v;
 }
 
-void GlobalMap::UpdateMap(std::vector<Power> powers, std::vector<PlayerInfo> playerInfos) {
-	// 先将power给打印出来，后续查找应该通过vector去查找，不应该从地图上查找
+void GlobalMap::UpdateMap(std::vector<Power> powers, std::vector<PlayerInfo> playerInfos
+	, int round, int mode) {
+
+	//round info
+	roundId = round;
+	mMode = mode;
+
+	// map info
 	for (auto power : powers) {
 		bool isAdd = true;
 		for (auto p : mPowers) {
@@ -524,6 +551,15 @@ void GlobalMap::UpdateMap(std::vector<Power> powers, std::vector<PlayerInfo> pla
 	memcpy(map2, map, sizeof(map));
 
 	for (auto info : playerInfos) {
+		//更新 our 和 opp playerinfo
+		if (info.team == ourTeamInfo.id) {// our player
+			ourPlayerInfo.push_back(info);
+		}
+		else {//opp player
+			oppPlayerInfo.push_back(info);
+		}
+
+		//更新map2
 		map2[info.point.y][info.point.x] = info.id;
 	}
 }
@@ -541,6 +577,14 @@ void GlobalMap::PrintMap() {
 		}
 		std::cout << std::endl;
 	}
+	std::cout << "=========== our team info ===============" << std::endl;
+	std::cout << "team id: " << ourTeamInfo.id << " our force: " << ourTeamInfo.force << " ";
+
+	for (int i = 0; i < 4; i++) {
+		std::cout << "player[" << ourTeamInfo.players[i] << "] ";
+	}
+	std::cout << std::endl;
+	
 }
 
 void GlobalMap::PrintMap2() {
