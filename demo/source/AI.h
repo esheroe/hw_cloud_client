@@ -12,4 +12,8 @@ public:
 	~AI();
 };
 
+class AI
+{
+};
+
 #endif

@@ -26,7 +26,7 @@
     <ClCompile Include="..\..\source\socketClient.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="AI.cpp">
+    <ClCompile Include="..\..\source\astar.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -40,8 +40,14 @@
     <ClInclude Include="..\..\source\socketClient.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="AI.h">
+    <ClInclude Include="resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\source\astar.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="client.rc" />
   </ItemGroup>
 </Project>

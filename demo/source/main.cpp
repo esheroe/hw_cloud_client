@@ -9,6 +9,7 @@
 //user defined
 #include "message.h"
 #include "socketClient.h"
+#include "astar.h"
 
 
 
@@ -60,7 +61,6 @@ int main(int argc, char * argv[])
 
     int myTeamId = atoi(argv[1]);
     int myPlayerId[4] = {0};
-
     /* 向server注册 */
     char regMsg[200]={'\0'};
     snprintf(regMsg, sizeof(regMsg), "{\"msg_name\":\"registration\",\"msg_data\":{\"team_id\":%d,\"team_name\":\"test_demo\"}}", myTeamId);
@@ -91,10 +91,10 @@ int main(int argc, char * argv[])
             char* msgName = msgNamePtr->valuestring;
 
             if (0 == strcmp(msgName,"round"))
-            {                
+            {
+				GlobalMap& globalMap = GlobalMap::Instance();
                 RoundMsg roundMsg(msgBuf);
                 roundMsg.DecodeMessge();
-
                 //根据策略和寻路决定下一步的动作，向服务器发送action消息
                 //Demo程序直接发送随机动作
                 ActMsg actMsg(roundMsg.GetRoundId());

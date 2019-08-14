@@ -316,6 +316,18 @@ void LegStartMsg::GenerateMap(int h, int w) {
 	//获取宽高
 	GlobalMap& mGlobalMap = GlobalMap::Instance();
 	mGlobalMap.InitMap(h, w);
+	if (h < 25)
+	{
+		for (int i = h; i < 25; i++)
+			for(int j =0;j<w; j++)
+				mGlobalMap.map[i][j] = 8;
+	}
+	if (w < 25)
+	{
+		for (int i = h; i < 25; i++)
+			for (int j = 0; j < w; j++)
+				mGlobalMap.map[j][i] = 8;
+	}
 	//生成陨石
 	for (auto metoer : mMeteors) {
 		mGlobalMap.map[metoer.y][metoer.x] = 8;
