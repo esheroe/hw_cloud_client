@@ -89,6 +89,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\source\AI.cpp" />
     <ClCompile Include="..\..\source\astar.cpp" />
     <ClCompile Include="..\..\source\message.cpp" />
     <ClCompile Include="..\..\source\main.cpp" />
@@ -96,6 +97,7 @@
     <ClCompile Include="..\..\source\socketClient.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\source\AI.h" />
     <ClInclude Include="..\..\source\astar.h" />
     <ClInclude Include="..\..\source\cjson\cJSON.h" />
     <ClInclude Include="..\..\source\message.h" />

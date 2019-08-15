@@ -29,6 +29,9 @@
     <ClCompile Include="..\..\source\astar.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\source\AI.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\source\cjson\cJSON.h">
@@ -44,6 +47,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\..\source\astar.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\source\AI.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,12 +1,15 @@
 #include "astar.h"
-std::vector<gridnodePtr> astar::path_search(Point st, Point et)
+int astar::path_search(Point st, Point et)
 {
+	GlobalMap& grid_map = GlobalMap::Instance();
 	start_pt = GridNodeMap[st.y][st.x];  
 	end_pt = GridNodeMap[et.y][et.x];
 	std::vector<gridnodePtr> path;
 	path.clear();
-	if (grid_map.map[end_pt->point.y][end_pt->point.x] == 8)
-		return path;
+	if (GridNodeMap[end_pt->point.y][end_pt->point.x]->value == 8)
+		return 0;
+	if (start_pt->point == end_pt->point)
+		return 0;
 	gridnodePtr current = NULL;
 	gridnodePtr neighbor = NULL;
 	start_pt->befrom = NULL;
@@ -22,8 +25,11 @@ std::vector<gridnodePtr> astar::path_search(Point st, Point et)
 		/// arrive at the target point 
 		if (current->point == end_pt->point)
 		{
-			std::cout << "find path " << std::endl;
-			return retrive_path(current);
+//			std::cout << "find path "<<end_pt->point.x<<"  "<<end_pt->point.y << std::endl;
+			path = retrive_path(current);
+			gridnodePtr out;
+			out = path[path.size() - 2];
+			return out->action;
 		}
 		else
 		{
@@ -32,22 +38,56 @@ std::vector<gridnodePtr> astar::path_search(Point st, Point et)
 			for(int dx = -1; dx < 2; dx++)
 				for (int dy = -1; dy < 2; dy++)
 				{
-					if (0 != dx * dy || (0 == dx && 0 == dy))
+					if (0 != dx * dy)
+						continue;
+					//out of field
+					if (current->point.y + dy < 0 || current->point.x + dx < 0)
+						continue;
+					if (current->point.y + dy >= grid_map.h || current->point.x + dx >= grid_map.w)
 						continue;
 					neighbor = GridNodeMap[current->point.y + dy][current->point.x + dx];
 					// obstacle
-					if (8 == grid_map.map[neighbor->point.y][neighbor->point.x])
+					if (8 == GridNodeMap[neighbor->point.y][neighbor->point.x]->value)
 						continue;
-					// the node is in the closed set
+					// the node is in the closed set and it is not a warmhole
+					if (-1 == neighbor->id && neighbor->value<24)
+						continue;
+					int action = 0;
+					//上方节点 对应action  1
+					if (neighbor->point.y < current->point.y)
+						action = 1;
+					//下方节点 对应action  2
+					else if (neighbor->point.y > current->point.y)
+						action = 2;
+					//左侧节点 对应action  3
+					else if (neighbor->point.x < current->point.x)
+						action = 3;
+					//右侧节点 对应action  4
+					else if (neighbor->point.x > current->point.x)
+						action = 4;
+					else
+					{
+						action = 0;
+						//std::cout << "origin pose" << std::endl;
+					}
+
+					double static_cost = 1.0;
+					//说明neighbor是warmhole和tunnel，保证了warmhole和tunnel不会被添加到openset之中
+					if (neighbor->isskip)
+						neighbor = neighbor->skip_point;
+					// obstacle
+					if (8 == GridNodeMap[neighbor->point.y][neighbor->point.x]->value)
+						continue;
 					if (-1 == neighbor->id)
 						continue;
-					double static_cost = 1.0;
+					//说明neigghbor开始被添加到openset
 					if (1 != neighbor->id)
 					{
 						neighbor->id = 1;
 						neighbor->befrom = current;
 						neighbor->gscore = current->gscore + static_cost;
 						neighbor->fscore = current->gscore + getManh(neighbor, end_pt);
+						neighbor->action = action;
 						neighbor->nodeMapIt = openSet.insert(make_pair(neighbor->fscore, neighbor));
 					}
 					else if(current->gscore + static_cost<=neighbor->gscore)
@@ -55,30 +95,11 @@ std::vector<gridnodePtr> astar::path_search(Point st, Point et)
 						neighbor->befrom = current;
 						neighbor->gscore = current->gscore + static_cost;
 						neighbor->fscore = current->gscore + getManh(neighbor, end_pt);
+						neighbor->action = action;
 						openSet.erase(neighbor->nodeMapIt);
 						neighbor->nodeMapIt = openSet.insert(make_pair(neighbor->fscore, neighbor));
 					}
 				}
-			//上方节点 对应action  1
-			if (neighbor->point.y < current->point.y)
-				neighbor->action = 1;
-			//下方节点 对应action  2
-			else if (neighbor->point.y > current->point.y)
-				neighbor->action = 2;
-			//左侧节点 对应action  3
-			else if (neighbor->point.x < current->point.x)
-				neighbor->action = 3;
-			//右侧节点 对应action  4
-			else
-				neighbor->action = 4;
-			//if the neighbor is a tunnel or a warmhole
-			if (grid_map.map[neighbor->point.y][neighbor->point.y] > 18)
-			{
-
-			}
-
-
-
 		}
 	}
 }
@@ -94,13 +115,17 @@ std::vector<gridnodePtr> astar::retrive_path(gridnodePtr cur_pt)
 	gridnodePtr tmp = cur_pt;
 	while (NULL != tmp->befrom)
 	{
+		std::cout << tmp->point.y << "  " << tmp->point.x <<"  " << tmp->action<<std::endl;
 		path.push_back(tmp);
 		tmp = tmp->befrom;
 	}
+	std::cout << tmp->point.y << "  " << tmp->point.x <<"  "<<tmp->action<< std::endl;
+	path.push_back(tmp);
 	return path; //obviously, the path does not include the start point
 }
 void astar::initmap()
 {
+	GlobalMap& grid_map = GlobalMap::Instance();
 	GridNodeMap = new gridnodePtr * [grid_map.h];
 	//构建指针地图
 	for (int i = 0; i < grid_map.h; i++)
@@ -126,7 +151,7 @@ void astar::initmap()
 			}
 		}
 	}
-	//处理时空隧道和虫洞
+	//处理时空隧道
 	for(int i = 0; i < grid_map.h; i++)
 		for (int j = 0; j < grid_map.w; j++)
 		{
@@ -152,10 +177,11 @@ void astar::initmap()
 				}
 				GridNodeMap[i][j]->skip_point = current;
 			}
-			//处理时空隧道
-			else
-			{
-
-			}
 		}
+	//处理虫洞
+	for (auto wh : grid_map.mWormholePairs)
+	{
+		GridNodeMap[wh.point1.y][wh.point1.x]->skip_point = GridNodeMap[wh.point2.y][wh.point2.x];
+		GridNodeMap[wh.point2.y][wh.point2.x]->skip_point = GridNodeMap[wh.point1.y][wh.point1.x];
+	}
 };
