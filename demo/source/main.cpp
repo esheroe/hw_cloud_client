@@ -10,8 +10,7 @@
 #include "message.h"
 #include "socketClient.h"
 #include "astar.h"
-
-
+static astar pathfind;
 
 int main(int argc, char * argv[])
 {
@@ -95,6 +94,17 @@ int main(int argc, char * argv[])
 				GlobalMap& globalMap = GlobalMap::Instance();
                 RoundMsg roundMsg(msgBuf);
                 roundMsg.DecodeMessge();
+				if (1 == roundMsg.round_id)
+				{
+					Point start_point;
+					Point end_point;
+					start_point.x = 0;
+					start_point.y = 6;
+					end_point.x = 19;
+					end_point.y = 0;
+					int action = pathfind.path_search(end_point, start_point);
+					std::cout <<"action is  "<< action << std::endl;
+				}
                 //根据策略和寻路决定下一步的动作，向服务器发送action消息
                 //Demo程序直接发送随机动作
                 ActMsg actMsg(roundMsg.GetRoundId());
@@ -115,6 +125,7 @@ int main(int argc, char * argv[])
             {
                 LegStartMsg legMsg(msgBuf);
                 legMsg.DecodeMessge(myTeamId,myPlayerId);
+				pathfind.initmap();
             }
             else if(0 == strcmp(msgName,"leg_end"))
             {

@@ -38,22 +38,36 @@ struct gridnode {
 		isskip = false;
 		skip_point = NULL;
 	}
-	gridnode() {};
+	gridnode() {
+		id = 0;
+		gscore = 0;
+		fscore = 10000;
+		befrom = NULL;
+		point.x = 0;
+		point.y = 0;
+		value = 0;
+		action = 0;
+		isskip = false;
+		skip_point = NULL;
+	};
 	~gridnode() {};
 };
 class astar
 {
 public:
-	astar(Point st, Point et) { start_pt->point=st;  end_pt->point = et; };
-	~astar() {};
-	std::vector<gridnodePtr> path_search(Point st, Point et);
+	astar() {};
+	~astar() {
+		delete start_pt;
+		delete end_pt;
+		delete[] GridNodeMap;
+	};
+	int path_search(Point st, Point et);
 	double getManh(gridnodePtr p1, gridnodePtr p2);
 	std::vector<gridnodePtr> retrive_path(gridnodePtr cur_pt);
 	void initmap();
 public:
-	GlobalMap& grid_map = GlobalMap::Instance();
-	gridnodePtr start_pt;
-	gridnodePtr end_pt;
+	gridnodePtr start_pt = new gridnode();
+	gridnodePtr end_pt = new gridnode();
 	std::multimap<double, gridnodePtr> openSet;
 	gridnodePtr ** GridNodeMap;
 };

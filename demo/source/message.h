@@ -16,6 +16,12 @@ struct Point {
 	bool operator==(const Point& p) {
 		return (x == p.x && y == p.y);
 	}
+	Point& operator=(const Point& p)
+	{
+		x = p.x;
+		y = p.y;
+		return *this;
+	}
 };
 
 // 表示队伍优势能力 0 表示think，1表示beat
