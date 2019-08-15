@@ -111,7 +111,14 @@ int main(int argc, char * argv[])
 	            for (int index = 0; index < 4; ++index)
 	            {
 		            SubAction action;
-		            action.moveDirect  = (DIRECT)(rand() % 4);
+					if (0 == index)
+					{
+						Point start_point;
+						Point end_point;
+
+					}
+					else
+						action.moveDirect  = (DIRECT)(rand() % 4);
 		            actMsg.AddSubAction(myTeamId, myPlayerId[index], action);
 	            }
                 const int maxActMsgLenth = 9999;
@@ -131,6 +138,7 @@ int main(int argc, char * argv[])
             {
                 LegEndMsg legMsg(msgBuf);
                 legMsg.DecodeMessge();
+				pathfind.~astar();
             }
             else if(0 == strcmp(msgName,"game_over"))
             {

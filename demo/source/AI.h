@@ -11,9 +11,4 @@ public:
 	AI();
 	~AI();
 };
-
-class AI
-{
-};
-
 #endif
