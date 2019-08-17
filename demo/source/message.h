@@ -83,8 +83,8 @@ public:
 	TeamInfo ourTeamInfo;
 
 	//      Y   X
-	int map[25][25] = {0};  //原始地图，只更新power信息
-	int map2[25][25] = {0}; //动态地图，只实时更新player信息
+	int map[25][25] ;  //原始地图，只更新power信息
+	int map2[25][25]; //动态地图，只实时更新player信息
 
 	//round
 	std::vector<PlayerInfo> ourPlayerInfo; // 我方队员信息

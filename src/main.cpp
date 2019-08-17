@@ -9,9 +9,11 @@
 //user defined
 #include "message.h"
 #include "socketClient.h"
-
-
-
+#include "astar.h"
+#include "AI.h"
+#include "core.h"
+static astar pathfind;
+static Team moyu;
 int main(int argc, char * argv[])
 {
     if(argc < 4)
@@ -60,7 +62,6 @@ int main(int argc, char * argv[])
 
     int myTeamId = atoi(argv[1]);
     int myPlayerId[4] = {0};
-
     /* 向server注册 */
     char regMsg[200]={'\0'};
     snprintf(regMsg, sizeof(regMsg), "{\"msg_name\":\"registration\",\"msg_data\":{\"team_id\":%d,\"team_name\":\"test_demo\"}}", myTeamId);
@@ -91,18 +92,38 @@ int main(int argc, char * argv[])
             char* msgName = msgNamePtr->valuestring;
 
             if (0 == strcmp(msgName,"round"))
-            {                
+            {
                 RoundMsg roundMsg(msgBuf);
                 roundMsg.DecodeMessge();
+				GlobalMap& globalMap = GlobalMap::Instance();
+				moyu.update();
+				moyu.process();
+				std::vector<int> actions;
+				actions.clear();
+				actions.push_back(pathfind.path_search(moyu.stupid.mPoint, moyu.stupid.target));
+				actions.push_back(pathfind.path_search(moyu.idiot.mPoint, moyu.idiot.target));
+				actions.push_back(pathfind.path_search(moyu.fool.mPoint, moyu.fool.target));
+				actions.push_back(pathfind.path_search(moyu.git.mPoint, moyu.git.target));
+				actions.push_back(4);
+				actions.push_back(4);
+				actions.push_back(4);
 
                 //根据策略和寻路决定下一步的动作，向服务器发送action消息
                 //Demo程序直接发送随机动作
                 ActMsg actMsg(roundMsg.GetRoundId());
 	            for (int index = 0; index < 4; ++index)
 	            {
-		            SubAction action;
-		            action.moveDirect  = (DIRECT)(rand() % 4);
-		            actMsg.AddSubAction(myTeamId, myPlayerId[index], action);
+
+						SubAction action;
+						int a = actions[index];
+						if (a > 0)
+							a = a - 1;
+						else if (0 == a)
+						{
+							a = 4;
+						}
+						action.moveDirect = (DIRECT)(a);
+						actMsg.AddSubAction(myTeamId, myPlayerId[index]-10, action);
 	            }
                 const int maxActMsgLenth = 9999;
                 char msgToSend[maxActMsgLenth] = {0};
@@ -115,6 +136,9 @@ int main(int argc, char * argv[])
             {
                 LegStartMsg legMsg(msgBuf);
                 legMsg.DecodeMessge(myTeamId,myPlayerId);
+				GlobalMap& globalMap = GlobalMap::Instance();
+				pathfind.initmap();
+				moyu.init(globalMap.ourTeamInfo, globalMap.vision);
             }
             else if(0 == strcmp(msgName,"leg_end"))
             {
@@ -123,6 +147,7 @@ int main(int argc, char * argv[])
             }
             else if(0 == strcmp(msgName,"game_over"))
             {
+				pathfind.~astar();
                 break;
             }
         }
