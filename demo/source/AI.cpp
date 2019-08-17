@@ -26,6 +26,13 @@ void AI::update()
 	}
 }
 
+Point AI::gettarget()
+{
+	GlobalMap& globalMap = GlobalMap::Instance();
+	//for(auto )
+	return waypoints[0];
+}
+
 void AI::run()
 {
 	target = waypoints[0];
@@ -39,27 +46,28 @@ void Team::init(TeamInfo teaminfo,int vision)
 	fool.init(teaminfo.players[2], vision);
 	git.init(teaminfo.players[3], vision);
 	//0号的初始巡逻路线
-	stupid.waypoints.push_back(Point(13, 3));
-	stupid.waypoints.push_back(Point(8, 3));
-	stupid.waypoints.push_back(Point(3, 3));
-	stupid.waypoints.push_back(Point(3, 8));	
 	stupid.waypoints.push_back(Point(3, 13));
+	stupid.waypoints.push_back(Point(3, 8));
+	stupid.waypoints.push_back(Point(3, 3));
+	stupid.waypoints.push_back(Point(8, 3));
+	stupid.waypoints.push_back(Point(13, 3));
+	
+
 	//1号的初始巡逻路线
-	idiot.waypoints.push_back(Point(3, 16));	
-	idiot.waypoints.push_back(Point(8, 16));
-	idiot.waypoints.push_back(Point(13, 16));
+	git.waypoints.push_back(Point(13, 16));
+	git.waypoints.push_back(Point(8, 16));
+	git.waypoints.push_back(Point(3, 16));
 
 	//2号的初始巡逻路线
-	fool.waypoints.push_back(Point(8, 12));
-	fool.waypoints.push_back(Point(10, 10));
 	fool.waypoints.push_back(Point(12, 8));
+	fool.waypoints.push_back(Point(10, 10));
+	fool.waypoints.push_back(Point(8, 12));
 
 	//3号的巡逻路线
-	git.waypoints.push_back(Point(16,16));
-	git.waypoints.push_back(Point(16, 13));
-	git.waypoints.push_back(Point(16, 8));
-	git.waypoints.push_back(Point(16, 3));
-	std::cout << stupid.id << "  " << idiot.id << "  " << fool.id << "  " << git.id << " idnumbers" << std::endl;
+	idiot.waypoints.push_back(Point(16, 3));
+	idiot.waypoints.push_back(Point(16, 8));
+	idiot.waypoints.push_back(Point(16, 13));
+	idiot.waypoints.push_back(Point(16, 16));
 }
 void Team::update()
 {
@@ -80,5 +88,6 @@ void Team::power_allocation(std::vector<Power> powers)
 {
 	for (auto pw : powers)
 	{
+		
 	}
 }

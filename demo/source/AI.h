@@ -19,6 +19,7 @@ public:
 	int moveTo(DIRECT direct);
 	void init(int id_,int vision_);
 	void update(); // 更新所有的消息
+	Point gettarget();
 	void Vision();
 	void updateState(); // 更新状态机
 	void run();

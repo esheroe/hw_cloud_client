@@ -33,15 +33,8 @@ int astar::path_search(Point st, Point et)
 	{
 		current = openSet.begin()->second;
 		/// arrive at the target point 
-		if (current->point == end_pt->point)
-		{
-			std::cout << "find path "<<end_pt->point.x<<"  "<<end_pt->point.y << std::endl;
-			path = retrive_path(current);
-			gridnodePtr out;
-			out = path[path.size() - 2];
-			return out->action;
-		}
-		else
+		
+		//else
 		{
 			openSet.erase(openSet.begin());
 			current->id = -1; // closed set
@@ -82,7 +75,6 @@ int astar::path_search(Point st, Point et)
 					}
 					double static_cost = 1.0;
 					//说明neighbor是warmhole和tunnel，保证了warmhole和tunnel不会被添加到openset之中
-//					std::cout << neighbor->isskip << std::endl;
 					if (neighbor->isskip)
 					{
 						neighbor = neighbor->skip_point;
@@ -114,7 +106,14 @@ int astar::path_search(Point st, Point et)
 				}
 		}
 	}
-
+	//if (current->point == end_pt->point)
+	{
+		std::cout << "find path " << end_pt->point.x << "  " << end_pt->point.y << std::endl;
+		path = retrive_path(end_pt);
+		gridnodePtr out;
+		out = path[path.size() - 2];
+		return out->action;
+	}
 	std::cout << "break??" << std::endl;
 	return 0;
 }
