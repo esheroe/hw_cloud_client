@@ -50,6 +50,7 @@ public:
 	void process();
 	~Team() {};
 	void power_allocation(std::vector<Power> powers);
+	int getdis(Point p1, Point p2);
 public:
 	AI stupid;
 	AI idiot;

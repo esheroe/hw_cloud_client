@@ -21,7 +21,6 @@ void AI::update()
 		{
 			isvalid = true;
 			mPoint = pinfo.point;
-
 		}
 	}
 }
@@ -32,10 +31,24 @@ Point AI::gettarget()
 	//for(auto )
 	return waypoints[0];
 }
-
 void AI::run()
 {
-	target = waypoints[0];
+	std::cout << " id" << id << powers.size() << std::endl;;
+	if (powers.empty())
+	{
+		target = waypoints[visted_num];
+		if (mPoint == waypoints[visted_num])
+		{
+			visted_num++;
+			if (visted_num >= waypoints.size())
+				visted_num = 0;
+		}
+	}
+	else
+	{
+		std::cout << "choose powers" << std::endl;
+		target = powers[0].point;
+	}
 }
 
 void Team::init(TeamInfo teaminfo,int vision)
@@ -84,10 +97,41 @@ void Team::process()
 	fool.run();
 	git.run();
 }
-void Team::power_allocation(std::vector<Power> powers)
+void Team::power_allocation(std::vector<Power> powers_)
 {
-	for (auto pw : powers)
+	stupid.powers.clear();
+	idiot.powers.clear();
+	fool.powers.clear();
+	git.powers.clear();
+	for (auto pw : powers_)
 	{
-		
+		if (getdis(pw.point, stupid.mPoint) < stupid.vision)
+		{
+			stupid.powers.push_back(pw);
+			continue;
+		}
+		if (getdis(pw.point, idiot.mPoint) < idiot.vision)
+		{
+			idiot.powers.push_back(pw);
+			continue;
+		}
+		if (getdis(pw.point, fool.mPoint) < fool.vision)
+		{
+			fool.powers.push_back(pw);
+			continue;
+		}
+		if (getdis(pw.point, git.mPoint) < git.vision)
+		{
+			git.powers.push_back(pw);
+			continue;
+		}
 	}
+	std::cout << stupid.vision << std::endl;
+}
+int Team::getdis(Point p1, Point p2)
+{
+	if (fabs(p1.x - p2.x) > fabs(p1.y - p2.y))
+		return fabs(p1.x - p2.x);
+	else
+		return fabs(p1.y - p2.y);
 }

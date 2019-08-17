@@ -50,11 +50,6 @@ struct PlayerInfo {
 	Point point;
 };
 
-/*int getdis(Point p1, Point p2)
-{
-	return int(fabs(p1.x - p2.x)) + int(fabs(p1.y - p2.y));
-}*/
-
 #endif // !_CORE_H_
 
 
