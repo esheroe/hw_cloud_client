@@ -20,6 +20,8 @@ add_executable(client
         ${SOURCE_DIR}/message.cpp
         ${SOURCE_DIR}/cJSON.c
         ${SOURCE_DIR}/socketClient.cpp
+        ${SOURCE_DIR}/AI.cpp
+        ${SOURCE_DIR}/astar.cpp
 )
 #target_include_directories(client)
 
