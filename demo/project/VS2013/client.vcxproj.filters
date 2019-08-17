@@ -52,6 +52,9 @@
     <ClInclude Include="..\..\source\AI.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\source\core.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="client.rc" />

@@ -65,6 +65,7 @@ public:
 	double getManh(gridnodePtr p1, gridnodePtr p2);
 	std::vector<gridnodePtr> retrive_path(gridnodePtr cur_pt);
 	void initmap();
+	void reset();
 public:
 	gridnodePtr start_pt = new gridnode();
 	gridnodePtr end_pt = new gridnode();

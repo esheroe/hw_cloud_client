@@ -8,63 +8,12 @@
 #include <stdlib.h>
 #include <vector>
 #include <iostream>
-
-struct Point {
-	int x;
-	int y;
-	
-	bool operator==(const Point& p) {
-		return (x == p.x && y == p.y);
-	}
-	Point& operator=(const Point& p)
-	{
-		x = p.x;
-		y = p.y;
-		return *this;
-	}
-};
-
-// 表示队伍优势能力 0 表示think，1表示beat
-struct TeamInfo {
-	int id;
-	int players[4];
-	int force;
-	   
-};
-
-struct WormholePair {
-	int name1;
-	int name2;
-	Point point1;
-	Point point2;
-};
-
-struct Tunnel {
-	Point point;
-	int direct;//上下左右 20 21 22 23
-};
-
-struct Power {
-	Point point;
-	int value;
-};
-
-
+#include <core.h>
 struct GameMap {
 	int h;
 	int w;
-	
 	int map[25][25];
 };
-
-struct PlayerInfo {
-	int id;
-	int score;
-	int sleep;
-	int team;
-	Point point;
-};
-
 
 enum DIRECT
 {
@@ -73,6 +22,7 @@ enum DIRECT
 	MOVE_LEFT = 2,
 	MOVE_RIGHT = 3,
 	NO_MOVE = 4,
+	
 	UP = 20,
 	DOWN = 21,
 	LEFT = 22,

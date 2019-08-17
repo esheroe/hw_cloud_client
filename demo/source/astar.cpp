@@ -1,15 +1,24 @@
 #include "astar.h"
 int astar::path_search(Point st, Point et)
 {
+	reset();
+//	std::cout << "path search" << std::endl;
+//	std::cout << "start  " << st.x << "  " << st.y << "  end " << et.x << "  " << et.y << std::endl;
 	GlobalMap& grid_map = GlobalMap::Instance();
 	start_pt = GridNodeMap[st.y][st.x];  
 	end_pt = GridNodeMap[et.y][et.x];
 	std::vector<gridnodePtr> path;
 	path.clear();
 	if (GridNodeMap[end_pt->point.y][end_pt->point.x]->value == 8)
+	{
+		std::cout << "target is node available" << std::endl;
 		return 0;
+	}
 	if (start_pt->point == end_pt->point)
+	{
+		std::cout << "arrive" << std::endl;
 		return 0;
+	}
 	gridnodePtr current = NULL;
 	gridnodePtr neighbor = NULL;
 	start_pt->befrom = NULL;
@@ -19,13 +28,14 @@ int astar::path_search(Point st, Point et)
 	start_pt->action = 0;
 	openSet.clear();
 	start_pt->nodeMapIt = openSet.insert(make_pair(start_pt->fscore, start_pt));
+
 	while (!openSet.empty())
 	{
 		current = openSet.begin()->second;
 		/// arrive at the target point 
 		if (current->point == end_pt->point)
 		{
-//			std::cout << "find path "<<end_pt->point.x<<"  "<<end_pt->point.y << std::endl;
+			std::cout << "find path "<<end_pt->point.x<<"  "<<end_pt->point.y << std::endl;
 			path = retrive_path(current);
 			gridnodePtr out;
 			out = path[path.size() - 2];
@@ -70,13 +80,15 @@ int astar::path_search(Point st, Point et)
 						action = 0;
 						//std::cout << "origin pose" << std::endl;
 					}
-
 					double static_cost = 1.0;
 					//说明neighbor是warmhole和tunnel，保证了warmhole和tunnel不会被添加到openset之中
+//					std::cout << neighbor->isskip << std::endl;
 					if (neighbor->isskip)
+					{
 						neighbor = neighbor->skip_point;
+					}
 					// obstacle
-					if (8 == GridNodeMap[neighbor->point.y][neighbor->point.x]->value)
+					if (8 == neighbor->value)
 						continue;
 					if (-1 == neighbor->id)
 						continue;
@@ -102,6 +114,9 @@ int astar::path_search(Point st, Point et)
 				}
 		}
 	}
+
+	std::cout << "break??" << std::endl;
+	return 0;
 }
 
 double astar::getManh(gridnodePtr p1, gridnodePtr p2)
@@ -149,6 +164,10 @@ void astar::initmap()
 			{
 				GridNodeMap[i][j]->isskip = true;
 			}
+			else
+			{
+				GridNodeMap[i][j]->isskip = false;
+			}
 		}
 	}
 	//处理时空隧道
@@ -183,5 +202,22 @@ void astar::initmap()
 	{
 		GridNodeMap[wh.point1.y][wh.point1.x]->skip_point = GridNodeMap[wh.point2.y][wh.point2.x];
 		GridNodeMap[wh.point2.y][wh.point2.x]->skip_point = GridNodeMap[wh.point1.y][wh.point1.x];
+	}
+};
+
+void astar::reset()
+{
+	GlobalMap& grid_map = GlobalMap::Instance();
+	//构建指针地图
+	for (int i = 0; i < grid_map.h; i++)
+	{
+		for (int j = 0; j < grid_map.w; j++)
+		{
+			GridNodeMap[i][j]->gscore = 0;
+			GridNodeMap[i][j]->fscore = 10000;
+			GridNodeMap[i][j]->befrom = NULL;
+			GridNodeMap[i][j]->action = 0;
+			GridNodeMap[i][j]->id = 0;
+		}
 	}
 };

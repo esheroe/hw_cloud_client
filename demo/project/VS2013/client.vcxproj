@@ -100,6 +100,7 @@
     <ClInclude Include="..\..\source\AI.h" />
     <ClInclude Include="..\..\source\astar.h" />
     <ClInclude Include="..\..\source\cjson\cJSON.h" />
+    <ClInclude Include="..\..\source\core.h" />
     <ClInclude Include="..\..\source\message.h" />
     <ClInclude Include="..\..\source\socketClient.h" />
     <ClInclude Include="resource.h" />

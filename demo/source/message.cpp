@@ -101,8 +101,8 @@ void LegStartMsg::GetMyTeamInfo(int& myTeamId,int myPlayerId[4])
               
 				if (myTeamId == id->valueint)
 				{
-					mTeamInfo.players[j] = playerInfo->valueint;
-					myPlayerId[j] = playerInfo->valueint;
+					mTeamInfo.players[j] = playerInfo->valueint + 10;
+					myPlayerId[j] = playerInfo->valueint + 10; //保持一致,和roundMsg里面
 				}
             }
 			cJSON* force = cJSON_GetObjectItem(teamInfo, "force");
@@ -512,9 +512,9 @@ void RoundMsg::DecodeMessge()
 	UpdateMap();
 
 	std::cout << "=====update Map=======" << std::endl;
-	if (round_id->valueint % 10 == 0) {
-		GlobalMap::Instance().PrintMap2();
-	}
+	//if (round_id->valueint % 10 == 0) {
+		//GlobalMap::Instance().PrintMap2();
+	//}
 	
 }
 
