@@ -35,8 +35,8 @@ int astar::path_search(Point st, Point et)
 		/// arrive at the target point 
 		if (current->point == end_pt->point)
 		{
-			std::cout << "find path "<<end_pt->point.x<<"  "<<end_pt->point.y << std::endl;
-			path = retrive_path(current);
+			std::cout << "find path " << end_pt->point.x << "  " << end_pt->point.y <<::ends;
+			path = retrive_path(end_pt);
 			gridnodePtr out;
 			out = path[path.size() - 2];
 			return out->action;
@@ -82,7 +82,6 @@ int astar::path_search(Point st, Point et)
 					}
 					double static_cost = 1.0;
 					//说明neighbor是warmhole和tunnel，保证了warmhole和tunnel不会被添加到openset之中
-//					std::cout << neighbor->isskip << std::endl;
 					if (neighbor->isskip)
 					{
 						neighbor = neighbor->skip_point;
@@ -114,7 +113,6 @@ int astar::path_search(Point st, Point et)
 				}
 		}
 	}
-
 	std::cout << "break??" << std::endl;
 	return 0;
 }
@@ -130,7 +128,7 @@ std::vector<gridnodePtr> astar::retrive_path(gridnodePtr cur_pt)
 	gridnodePtr tmp = cur_pt;
 	while (NULL != tmp->befrom)
 	{
-		std::cout << tmp->point.y << "  " << tmp->point.x <<"  " << tmp->action<<std::endl;
+		//std::cout << tmp->point.y << "  " << tmp->point.x <<"  " << tmp->action<<std::endl;
 		path.push_back(tmp);
 		tmp = tmp->befrom;
 	}

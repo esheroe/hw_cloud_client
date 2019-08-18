@@ -2,6 +2,7 @@
 #ifndef _MESSAGE_H_
 #define _MESSAGE_H_
 
+#include <cmath>
 #include <string.h>
 #include "cJSON.h"
 #include <stdio.h>

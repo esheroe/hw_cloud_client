@@ -2,7 +2,6 @@
 #ifndef _ASTAR_H_
 #define _ASTAR_H_
 
-#include <cmath>
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>

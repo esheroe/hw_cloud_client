@@ -81,7 +81,7 @@ int main(int argc, char * argv[])
 		start = clock();
         if (size > 0)
         {
-            //printf("\r\n Round Server Msg: %s\r\n", buffer);
+            printf("\r\n Round Server Msg: %s\r\n", buffer);
             cJSON *msgBuf = cJSON_Parse(buffer+5);
             if(NULL == msgBuf) continue;
 
@@ -95,8 +95,8 @@ int main(int argc, char * argv[])
             {
                 RoundMsg roundMsg(msgBuf);
                 roundMsg.DecodeMessge();
-				GlobalMap& globalMap = GlobalMap::Instance();
 				moyu.update();
+				moyu.power_allocation(roundMsg.powers);
 				moyu.process();
 				std::vector<int> actions;
 				actions.clear();
@@ -104,10 +104,6 @@ int main(int argc, char * argv[])
 				actions.push_back(pathfind.path_search(moyu.idiot.mPoint, moyu.idiot.target));
 				actions.push_back(pathfind.path_search(moyu.fool.mPoint, moyu.fool.target));
 				actions.push_back(pathfind.path_search(moyu.git.mPoint, moyu.git.target));
-				actions.push_back(4);
-				actions.push_back(4);
-				actions.push_back(4);
-
                 //根据策略和寻路决定下一步的动作，向服务器发送action消息
                 //Demo程序直接发送随机动作
                 ActMsg actMsg(roundMsg.GetRoundId());
@@ -130,6 +126,8 @@ int main(int argc, char * argv[])
                 actMsg.PackActMsg(msgToSend,maxActMsgLenth);
                 client.Send(msgToSend, (int)strlen(msgToSend), 0);
 				printf("send msg\n");
+				//if (roundMsg.round_id == 50)
+					//break;
 //                send(sockClient, msgToSend, (int)strlen(msgToSend), 0);
             }
             else if (0 == strcmp(msgName,"leg_start"))
