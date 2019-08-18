@@ -33,8 +33,15 @@ int astar::path_search(Point st, Point et)
 	{
 		current = openSet.begin()->second;
 		/// arrive at the target point 
-		
-		//else
+		if (current->point == end_pt->point)
+		{
+			std::cout << "find path " << end_pt->point.x << "  " << end_pt->point.y <<::ends;
+			path = retrive_path(end_pt);
+			gridnodePtr out;
+			out = path[path.size() - 2];
+			return out->action;
+		}
+		else
 		{
 			openSet.erase(openSet.begin());
 			current->id = -1; // closed set
@@ -106,14 +113,6 @@ int astar::path_search(Point st, Point et)
 				}
 		}
 	}
-	//if (current->point == end_pt->point)
-	{
-		std::cout << "find path " << end_pt->point.x << "  " << end_pt->point.y << std::endl;
-		path = retrive_path(end_pt);
-		gridnodePtr out;
-		out = path[path.size() - 2];
-		return out->action;
-	}
 	std::cout << "break??" << std::endl;
 	return 0;
 }
@@ -129,7 +128,7 @@ std::vector<gridnodePtr> astar::retrive_path(gridnodePtr cur_pt)
 	gridnodePtr tmp = cur_pt;
 	while (NULL != tmp->befrom)
 	{
-		std::cout << tmp->point.y << "  " << tmp->point.x <<"  " << tmp->action<<std::endl;
+		//std::cout << tmp->point.y << "  " << tmp->point.x <<"  " << tmp->action<<std::endl;
 		path.push_back(tmp);
 		tmp = tmp->befrom;
 	}

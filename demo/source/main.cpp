@@ -81,7 +81,7 @@ int main(int argc, char * argv[])
 		start = clock();
         if (size > 0)
         {
-            //printf("\r\n Round Server Msg: %s\r\n", buffer);
+            printf("\r\n Round Server Msg: %s\r\n", buffer);
             cJSON *msgBuf = cJSON_Parse(buffer+5);
             if(NULL == msgBuf) continue;
 
@@ -95,7 +95,6 @@ int main(int argc, char * argv[])
             {
                 RoundMsg roundMsg(msgBuf);
                 roundMsg.DecodeMessge();
-				GlobalMap& globalMap = GlobalMap::Instance();
 				moyu.update();
 				moyu.power_allocation(roundMsg.powers);
 				moyu.process();

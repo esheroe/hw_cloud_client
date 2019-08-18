@@ -72,9 +72,9 @@ void Team::init(TeamInfo teaminfo,int vision)
 	git.waypoints.push_back(Point(3, 16));
 
 	//2号的初始巡逻路线
-	fool.waypoints.push_back(Point(12, 8));
+	fool.waypoints.push_back(Point(11, 8));
 	fool.waypoints.push_back(Point(10, 10));
-	fool.waypoints.push_back(Point(8, 12));
+	fool.waypoints.push_back(Point(8, 11));
 
 	//3号的巡逻路线
 	idiot.waypoints.push_back(Point(16, 3));
@@ -126,7 +126,6 @@ void Team::power_allocation(std::vector<Power> powers_)
 			continue;
 		}
 	}
-	std::cout << stupid.vision << std::endl;
 }
 int Team::getdis(Point p1, Point p2)
 {

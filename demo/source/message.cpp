@@ -477,6 +477,8 @@ void RoundMsg::UpdateMap() {
 
 void RoundMsg::DecodeMessge()
 {
+//	playerInfos.clear();
+//	powers.clear();
     cJSON* msg_data = cJSON_GetObjectItem(root,"msg_data");
     if(NULL == msg_data) return;
 
@@ -500,13 +502,13 @@ void RoundMsg::DecodeMessge()
     DecodePlayers(players);
 
     cJSON* teams = cJSON_GetObjectItem(msg_data,"teams");
-    if(NULL == teams) return;
-    DecodeTeams(teams);  
+	if (NULL == teams) return;
+	DecodeTeams(teams);  
 
-
+	///可能出现power为空的情况，此时不能直接return；仍然要更新地图的
     cJSON* power = cJSON_GetObjectItem(msg_data,"power");
-    if(NULL == power) return;
-    DecodePower(power);
+    if(NULL != power)	
+		DecodePower(power);
 
 	//更新地图
 	UpdateMap();
