@@ -5,14 +5,11 @@
 
 import socket
 import json
-# import time
-from ballclient.service import service
+from ballclient.service.service import Service
 import ballclient.service.constants as constants
 
 _socket = None
-
 SOCKET_CACHE = 1024 * 10
-
 
 def try_again(func):
     def wraper(*args, **kwargs):
@@ -40,30 +37,24 @@ def connect_socket(ip=None, port=None):
 def start(ip=None, port=None):
     global _socket
     try:
+        service = Service()
         connect_socket(ip,port)
         register()
-        point = []
+        
         while 1:
-            try:
-                data = _receive()
-                if data['msg_name'] == "round":
-                    # message = service.round(data,mapmsg,force)
-                    message = service.round(data)
-                    send_dict(message)
-                elif data['msg_name'] == "leg_start":
-                    # (mapmsg,force) = service.leg_start(data)
-                    service.leg_start(data)
-                elif data['msg_name'] == "leg_end":
-                    # point.append(service.leg_end(data))
-                    # print(point)
-                    service.leg_end(data)
-                elif data['msg_name'] == "game_over":
-                    service.game_over(data)
-                    return
-                else:
-                    print ("invalid msg_name.")
-            except:
-                print('pass')
+            data = _receive()
+            if data['msg_name'] == "round":
+                message = service.round(data)
+                send_dict(message)
+            elif data['msg_name'] == "leg_start":
+                service.leg_start(data)
+            elif data['msg_name'] == "leg_end":
+                service.leg_end(data)
+            elif data['msg_name'] == "game_over":
+                service.game_over(data)
+                return
+            else:
+                print ("invalid msg_name.")
     except socket.error:
         print ("can not connect with server. %s,%s" % (ip, port))
     except Exception as e:
@@ -98,11 +89,10 @@ class Receiver(object):
         while 1:
             d = _socket.recv(SOCKET_CACHE)
             try:
-                # print(d,d[:5].isdigit(), d[5] == 123)
                 if d[:5].isdigit() and d[5] == 123:
+                    # print(d)
                     self._cach = ""
                     data = remove_json_num(d)
-                    # print(json.loads(data))
                     return json.loads(data)
                 else:
                     data = remove_json_num(self._cach + d)

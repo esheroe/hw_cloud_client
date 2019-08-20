@@ -1,4 +1,4 @@
-''' 
+'''
 入口方法，选手不关注
 '''
 
@@ -9,13 +9,12 @@ import ballclient.service.constants as constants
 from ballclient.comunicate import client
 
 if __name__ == "__main__":
-    print (sys.argv)    
+    print (sys.argv)
     # 用于本地测试
-    # sys.argv = [b'gameclient.bat', b'3206', b'127.0.0.1' ,b'6001']
+    # sys.argv = [b'gameclient.bat', b'1112', b'127.0.0.1' ,b'6001']
     if len(sys.argv) != 4:
         print ("The parameters has error. (TeamID server_ip server_port)")
         exit()
-    # 这里由服务器分配team id，并更新到constants
     team_id = sys.argv[1]
     server_ip = sys.argv[2]
     port = sys.argv[3]
@@ -28,5 +27,3 @@ if __name__ == "__main__":
         exit()
     constants.team_id = team_id
     client.start( server_ip, port)
-
-

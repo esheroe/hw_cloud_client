@@ -1,4 +1,5 @@
 #global variable here
-team_id = 1112
-
-team_name = "Team_name" # decided by yourself.
+# 调用方式为constants.variable
+team_id = 3206
+ai_id = 1111
+team_name = "lx852357" # decided by yourself.
