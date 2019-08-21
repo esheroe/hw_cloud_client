@@ -9,6 +9,7 @@
 所有方法的返回值为dict对象。客户端会在dict前面增加字符个数。
 '''
 import ballclient.service.constants as constants
+from ballclient.service.GameMap import gameMap as gameMap
 import random
 
 def leg_start(msg):
@@ -17,6 +18,8 @@ def leg_start(msg):
     :return: None
     '''
     print("round start")
+    gameMap.handleMsg(msg)
+    print (gameMap.map)
 
     # print("msg_name:%s" % msg['msg_name'])
     # print("map_width:%s" % msg['msg_data']['map']['width'])
@@ -58,6 +61,7 @@ def leg_end(msg):
 
 
 def game_over(msg):
+    gameMap.printAll()
     print("game over!")
 
 
@@ -67,8 +71,8 @@ def round(msg):
     :return:
     return type: dict
     '''
-    print("round")
-
+    #print("round")
+    gameMap.updateMsg(msg)
     round_id = int(msg['msg_data']['round_id'])
     players = msg['msg_data']['players']
     
@@ -82,8 +86,8 @@ def round(msg):
     action = []
     # print "神秘代码：临兵斗者皆阵列前行"
     for player in players:
-        # if player['team'] == constants.team_id:
-        if player['team'] != 1111:
+        if player['team'] == constants.team_id:
+        #if player['team'] != 1111:
             action.append({"team": player['team'], "player_id": player['id'],
                            "move": [direction[random.randint(1, 4)]]})
     result['msg_data']['actions'] = action
