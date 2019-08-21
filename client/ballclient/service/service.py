@@ -9,6 +9,7 @@
 所有方法的返回值为dict对象。客户端会在dict前面增加字符个数。
 '''
 import ballclient.service.constants as constants
+from ballclient.service.astar import A_Star
 import random
 
 def leg_start(msg):
@@ -17,7 +18,8 @@ def leg_start(msg):
     :return: None
     '''
     print("round start")
-
+    global a_star
+    a_star = A_Star(2, 3, 19, 19,20,20)
     # print("msg_name:%s" % msg['msg_name'])
     # print("map_width:%s" % msg['msg_data']['map']['width'])
     # print("map_height:%s" % msg['msg_data']['map']['height'])
@@ -80,6 +82,8 @@ def round(msg):
         }
     }
     action = []
+    a_star.resetmap()
+    a_star.find_path(2,3,8,8)
     # print "神秘代码：临兵斗者皆阵列前行"
     for player in players:
         # if player['team'] == constants.team_id:
