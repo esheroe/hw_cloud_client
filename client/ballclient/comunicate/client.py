@@ -8,7 +8,7 @@ import json
 # import time
 from ballclient.service import service
 import ballclient.service.constants as constants
-from ballclient.service.GameMap import gameMap as gameMap
+#from ballclient.service.GameMap import gameMap as gameMap
 
 _socket = None
 

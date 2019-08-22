@@ -17,7 +17,7 @@ def leg_start(msg):
     :param msg:
     :return: None
     '''
-    print("round start")
+    print("round start no ")
     gameMap.handleMsg(msg)
     print (gameMap.map)
 
