@@ -1,7 +1,7 @@
 # encoding:utf8
 #import numpy as np
 import copy
-#import matplotlib.pyplot as plt
+i#mport matplotlib.pyplot as plt
 import ballclient.service.constants as constants
 #import constants as constants
 '''
@@ -39,6 +39,7 @@ class GameMap(object):
         #[[20, 5, 5], [23, 6, 5]
         self.tunnels = []
         
+        self.ourCurrentPlayer = []
         self.ourPlayer    = []#[0,1,2,3] or [4,5,6,7]
         self.oppPlayer    = []#[0,1,2,3] or [4,5,6,7]
         
@@ -56,6 +57,8 @@ class GameMap(object):
         print ('vision: ', self.vision)
         print ('roundID: ', self.roundID)
         print ('isourPower? ', self.isOurPower())
+        print ('oppPlayer: ', self.oppPlayer)
+        print ('ourCurrentPlayer: ', self.ourCurrentPlayer)
  
     '''处理leg_start消息'''
     def handleMsg(self, msg):
@@ -143,6 +146,7 @@ class GameMap(object):
     def updateMsg(self, msg):
         self.map2 = copy.deepcopy(self.map)
         self.oppPlayer.clear()
+        self.ourCurrentPlayer.clear()
         
         '''round 必有的信息'''
         self.currentMode = msg['msg_data']['mode']
@@ -166,7 +170,11 @@ class GameMap(object):
             for player in players:
                 self.map2[player['y']][player['x']] = player['id']+10
                 if player['team'] != constants.team_id: 
-                    self.oppPlayer.append(player['id'])
+                    opp = [player['id'],player['x'],player['y']]
+                    self.oppPlayer.append(opp)
+                else:
+                    our = [player['id'],player['x'],player['y']]
+                    self.ourCurrentPlayer.append(our)
             #print (self.oppPlayer)
         except:
             pass     
@@ -187,5 +195,6 @@ if __name__ == '__main__':
     plt.imshow(m.map2)
     plt.figure('map')
     plt.imshow(m.map)
-'''
+’‘’
+
 
