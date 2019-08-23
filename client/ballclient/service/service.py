@@ -9,26 +9,22 @@
 所有方法的返回值为dict对象。客户端会在dict前面增加字符个数。
 '''
 import ballclient.service.constants as constants
-from ballclient.service.astar import A_Star
-import random
+from ballclient.service.GameMap import gameMap as gameMap
+from ballclient.service.AI import Team
+#import random
 
 def leg_start(msg):
     '''
     :param msg:
     :return: None
     '''
-    print("round start")
-    global a_star
-    a_star = A_Star(2, 3, 19, 19,20,20)
-    # print("msg_name:%s" % msg['msg_name'])
-    # print("map_width:%s" % msg['msg_data']['map']['width'])
-    # print("map_height:%s" % msg['msg_data']['map']['height'])
-    # print("vision:%s" % msg['msg_data']['map']['vision'])
-    # print("meteor:%s" % msg['msg_data']['map']['meteor'])
-    # print("tunnel:%s" % msg['msg_data']['map']['tunnel'])
-    # print("wormhole:%s" % msg['msg_data']['map']['wormhole'])
-    # print("teams:%s" % msg['msg_data']['teams'])
-
+    print("round start no ")
+    gameMap.handleMsg(msg)
+    for i in range(len(gameMap.map)):
+        print (gameMap.map[i])
+    global moyu
+    moyu=Team()
+    
 def leg_end(msg):
     '''
 
@@ -60,6 +56,7 @@ def leg_end(msg):
 
 
 def game_over(msg):
+    gameMap.printAll()
     print("game over!")
 
 
@@ -69,12 +66,12 @@ def round(msg):
     :return:
     return type: dict
     '''
-    print("round")
-
+    #print("round")
+    gameMap.updateMsg(msg)
     round_id = int(msg['msg_data']['round_id'])
     players = msg['msg_data']['players']
-    
-    direction = {1: 'up', 2: 'down', 3: 'left', 4: 'right'}
+    print('        ########',round_id,'#########   ')
+    direction = {0:'',1: 'up', 2: 'down', 3: 'left', 4: 'right'}
     result = {
         "msg_name": "action",
         "msg_data": {
@@ -82,13 +79,21 @@ def round(msg):
         }
     }
     action = []
-    a_star.resetmap()
-    a_star.find_path(2,3,8,8)
+    moves = []
+    moves.clear()
+    moves=moyu.process()
     # print "神秘代码：临兵斗者皆阵列前行"
-    for player in players:
-        # if player['team'] == constants.team_id:
-        if player['team'] != 1111:
-            action.append({"team": player['team'], "player_id": player['id'],
-                           "move": [direction[random.randint(1, 4)]]})
+    if moyu.stupid.isvalid:
+        action.append({"team": constants.team_id, "player_id": gameMap.ourPlayer[0],
+                   "move": [direction[moves[0]]]})
+    if moyu.idiot.isvalid:
+        action.append({"team": constants.team_id, "player_id": gameMap.ourPlayer[1],
+                   "move": [direction[moves[1]]]})
+    if moyu.fool.isvalid:
+        action.append({"team": constants.team_id, "player_id": gameMap.ourPlayer[2],
+                   "move": [direction[moves[2]]]})
+    if moyu.git.isvalid:
+        action.append({"team": constants.team_id, "player_id": gameMap.ourPlayer[3],
+                   "move": [direction[moves[3]]]})
     result['msg_data']['actions'] = action
     return result

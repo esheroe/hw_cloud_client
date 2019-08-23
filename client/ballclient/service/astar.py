@@ -6,6 +6,7 @@ Created on Tue Aug 20 21:46:41 2019
 """
 # -*- coding: utf-8 -*-
 import math
+from ballclient.service.GameMap import gameMap as gameMap
 #地图
 test_map = [
 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0 ,97],
@@ -65,15 +66,19 @@ class A_Star:
     
     def init_gridmap(self):
         warmholes=[]
+        self.width=gameMap.width
+        self.height=gameMap.height
+        print(self.width,self.height)
         for i in range(self.height):
             self.gridmap.append([])
             for j in range(self.width):
-                p=Node_Elem(None,j,i,test_map[i][j],0.0,0,0,None)
+                p=Node_Elem(None,j,i,gameMap.map[i][j],0.0,0,0,None)
                 if p.value>18:
                     p.isskip=True
                 if p.value>24:
                     warmholes.append(p)
-                self.gridmap[i].append(p)
+                self.gridmap[i].append(p) 
+
         for i in range(self.height):
             for j in range(self.width):
                 #处理时空隧道
@@ -83,15 +88,17 @@ class A_Star:
                         if cur.skip_point:
                             cur=cur.skip_point
                             break;
-                        if 20==cur.value and cur.y-1>0:
+                        if 20==cur.value and cur.y-1>=0:
                             cur=self.gridmap[cur.y-1][cur.x]
                         elif 21==cur.value and cur.y+1<self.height:
                             cur=self.gridmap[cur.y+1][cur.x]
-                        elif 22==cur.value and cur.x-1>0:
+                        elif 22==cur.value and cur.x-1>=0:
                             cur=self.gridmap[cur.y][cur.x-1]   
                         elif 23==cur.value and cur.x+1<self.width:
                             cur=self.gridmap[cur.y][cur.x+1]
-                    self.gridmap[i][j].skip_point=cur;                
+                    self.gridmap[i][j].skip_point=cur;
+        print('test',self.gridmap[0][19].value)
+        print('init grid map')
         for warmhole1 in warmholes:
             x1=warmhole1.x
             y1=warmhole1.y
@@ -104,8 +111,7 @@ class A_Star:
                     continue
                 if warmhole1.value==warmhole2.value and (x1!=x2 or y1!=y2):
                     self.gridmap[y1][x1].skip_point=self.gridmap[y2][x2]
-                    self.gridmap[y2][x2].skip_point=self.gridmap[y1][x1]
-                    
+                    self.gridmap[y2][x2].skip_point=self.gridmap[y1][x1]            
                     
     def resetmap(self):
         for i in range(self.height):
@@ -119,29 +125,43 @@ class A_Star:
                 self.close.clear()
              
     #查找路径的入口函数
-    def find_path(self,s_x,s_y,e_x,e_y):
+    def find_path(self,s_x,s_y,e_x,e_y,name):
+        self.resetmap()
         #构建开始节点  
         self.s_x=s_x
         self.s_y=s_y
         self.e_x=e_x
         self.e_y=e_y
+        print(name,'find path',self.s_y,' ',self.s_x,'  ',self.e_y,'  ',self.e_x)
+        if self.s_x==self.e_x and self.s_y==self.e_y:
+            print(self.s_y,'arrive',self.s_x)
+            return 0
+        if self.gridmap[self.s_y][self.s_x].value==8 or self.gridmap[self.e_y][self.e_x].value==8:
+            print('obstacle')
+            return 0
+        if self.gridmap[self.s_y][self.s_x].value<24 and self.gridmap[self.s_y][self.s_x].value>=20:
+            print(self.s_y,'start tunnel',self.s_x)
+            return 0
+        if self.gridmap[self.e_y][self.e_x].value<24 and self.gridmap[self.e_y][self.e_x].value>=20:
+            print(self.e_y,'end tunnel',self.e_x)
+            return 0
+
         p=self.gridmap[self.s_y][self.s_x]
-        n=0
         while True:
-            n=n+1
-            print('count',n)
             #扩展F值最小的节点
             self.extend_round(p)
-            #如果开放列表为空，则不存在路径，返回
+            #如果开放列表为空，则不存在路径，返回0，表示停止不动
             if not self.open:
-                return
+                print('nopath')
+                return 0
             #获取F值最小的节点
             idx, p = self.get_best()
             #找到路径，生成路径，返回
             if self.is_target(p):
-                print('find path',self.s_x,self.s_y,self.e_x,self.e_y)
+                print(self.e_y,'find path',self.e_x)
                 self.make_path(p)
-                return
+                node=self.path[len(self.path)-1]
+                return node.action
             #把此节点压入关闭列表，并从开放列表里删除
             self.close.append(p)
             del self.open[idx]
@@ -153,7 +173,7 @@ class A_Star:
         while p.x!=self.s_x or p.y!=self.s_y:
             self.path.append(p)
             p = p.parent
-#            print(p.x,p.y,p.action)
+            #print(p.x,p.y,p.action)
     #判断是否到达目的地    
     def is_target(self, i):
         return i.x == self.e_x and i.y == self.e_y
@@ -229,11 +249,12 @@ class A_Star:
         if x < 0 or x >= self.width or y < 0 or y >= self.height:
             return False
         return True
-    
+"""
 def find_path(s_x,s_y,e_x,e_y):
     a_star = A_Star(s_x, s_y, e_x, e_y,20,20)
     a_star.resetmap()
     a_star.find_path(2,3,8,8)
+"""    
 """
 "if __name__ == ""__main__:"
 if 1:

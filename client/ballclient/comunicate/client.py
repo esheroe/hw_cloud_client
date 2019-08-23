@@ -8,6 +8,7 @@ import json
 # import time
 from ballclient.service import service
 import ballclient.service.constants as constants
+#from ballclient.service.GameMap import gameMap as gameMap
 
 _socket = None
 
@@ -49,6 +50,9 @@ def start(ip=None, port=None):
                 if data['msg_name'] == "round":
                     # message = service.round(data,mapmsg,force)
                     message = service.round(data)
+                    #print ('roundid: ',gameMap.roundID)
+                    #print (gameMap)
+
                     send_dict(message)
                 elif data['msg_name'] == "leg_start":
                     # (mapmsg,force) = service.leg_start(data)

@@ -30,7 +30,11 @@
 *.exe
 *.out
 *.app
+*.pyc
 
 build/
 .vs/
 Debug/
+client/ballclient/__pycache__/
+client/ballclient/comunicate/__pycache__/
+client/ballclient/service/__pycache__/
