@@ -1,7 +1,8 @@
 # encoding:utf8
 import numpy as np
 import matplotlib.pyplot as plt
-import ballclient.service.constants as constants
+#import ballclient.service.constants as constants
+import constants as constants
 
 class GameMap():
     def __init__(self):
