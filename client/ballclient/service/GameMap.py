@@ -1,7 +1,7 @@
 # encoding:utf8
 #import numpy as np
 import copy
-i#mport matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import ballclient.service.constants as constants
 #import constants as constants
 '''
@@ -195,6 +195,4 @@ if __name__ == '__main__':
     plt.imshow(m.map2)
     plt.figure('map')
     plt.imshow(m.map)
-’‘’
-
-
+'''
