@@ -90,28 +90,22 @@ class AI:
                 self.isvalid=True
                 self.mpoint=point(pinfo[1],pinfo[2])
                 
-        #todo 我想把power all放在这个里面来，但是放进来后机器人就不动了，暂时没找到bug在哪
-        '''power all'''
-        '''
-        self.powers.clear()
-        
+        #吃分检测
+        for power in self.seePowers:
+            if power not in gameMap.curpowers: #吃到分了
+                self.seePowers.remove(power)
+                
+        #todo 我想把power all放在这个里面来，但是放进来后机器人就不动了，暂时没找到bug在哪    
         for cur_power in gameMap.curpowers:
             if(self.mpoint.distance(point(cur_power[1],cur_power[2])) <= self.vision):
                 if cur_power not in self.seePowers:
                     self.seePowers.append(cur_power)
-                self.powers.append(point(cur_power[1],cur_power[2]))
-                gameMap.curpowers.remove(cur_power) #从中取走这个点，避免和其他机器人冲突
+                    gameMap.curpowers.remove(cur_power) #从中取走这个点，避免和其他机器人冲突
                 print ("new ",self.name,": ",cur_power)
                 print("gCurpowers:",gameMap.curpowers)
                 break
-        #吃分检测
-        for power in self.seePowers:
-            if self.mpoint.distance(point(power[1],power[2])) <= self.vision:
-                if power not in gameMap.curpowers: #吃到分了
-                    self.seePowers.remove(power)
-                else:
-                    #no nothing
-        '''
+
+
         
         
         #todo 这个更新状态还没做，参考run下面的代码做状态更新
@@ -223,9 +217,9 @@ class AI:
         
         
     def run(self):
-        if len(self.powers):
-            self.target.x=self.powers[0].x
-            self.target.y=self.powers[0].y
+        if len(self.seePowers):
+            self.target.x=self.seePowers[0][1]
+            self.target.y=self.seePowers[0][2]
             print(self.target.y,'choose  power',self.target.x,self.name)
             #必须保证waypoints不为空，否则肯定会出错
         else:
