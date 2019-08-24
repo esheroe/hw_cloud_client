@@ -42,7 +42,9 @@ class GameMap(object):
         
         self.ourCurrentPlayer = []
         self.ourPlayer    = []#[0,1,2,3] or [4,5,6,7]
-        self.oppPlayer    = []#[0,1,2,3] or [4,5,6,7]
+        
+        #当前看到的敌人           [id x, y score]
+        self.oppPlayer    = []#[[4, 5, 4, 2], [6, 5, 5, 2], [7, 5, 5, 2]]
         
         self.vision       = 0
         self.roundID      = 0
@@ -174,7 +176,7 @@ class GameMap(object):
             for player in players:
                 self.map2[player['y']][player['x']] = player['id']+10
                 if player['team'] != constants.team_id: 
-                    opp = [player['id'],player['x'],player['y']]
+                    opp = [player['id'],player['x'],player['y'],player['score']]
                     self.oppPlayer.append(opp)
                 else:
                     our = [player['id'],player['x'],player['y']]

@@ -21,6 +21,13 @@ class point:
         
 class Transition:
     def __init__(self):
+        '''
+        t.P | t.SEE | t.BIGFISH = 19
+        t.P | t.SEE             = 3
+        t.SEE | t.BIGFISH       = 18
+        t.SEE                   = 2
+        UNSEE                   = 0
+        '''
         self.N = 0
         self.P = 1
         self.SEE = 2
@@ -109,13 +116,26 @@ class AI:
         
         #todo 这个更新状态还没做，参考run下面的代码做状态更新
         '''更新状态'''
+        self.nowTState = 0 #每回合状态清零
+        if gameMap.isOurPower():
+            self.nowTState |= self.t.P #优势
+        else:
+            self.nowTState |= self.t.N #劣势
+        
+        for opp in gameMap.oppPlayer:
+            if self.mpoint.distance(point(opp[1],opp[2])) <= self.vision:
+                self.nowTState |= self.t.SEE     #看到敌人了
+                if opp[3] >= 20:                     #大于20分的敌人认为是大鱼
+                    self.nowTState |= self.t.BIGFISH #看到大鱼了
         
         
         
         
-    #状态转移
+        
+        
+        
+        #状态转移
     def origin_transition(self,TState):
-    
         t = TState & 0x0f #取低四位
         if(t == self.t.P):
             newState = self.s.SEARCH
@@ -143,6 +163,8 @@ class AI:
              newState = self.s.RUNAWAY
         elif(t == self.t.P | self.t.SEE):
             newState = self.s.SEARCH
+        elif(t == self.t.P):
+            newState = self.s.SEARCH
         else:
             newState = "error_state"
         print("search_score_state->",newState)
@@ -157,6 +179,8 @@ class AI:
         elif(t == self.t.SEE):
              newState = self.s.RUNAWAY
         elif(t == self.t.P | self.t.SEE):
+            newState = self.s.SEARCH
+        elif(t == self.t.P):
             newState = self.s.SEARCH
         else:
             newState = "error_state"
@@ -173,6 +197,8 @@ class AI:
         elif(t == self.t.SEE):
              newState = self.s.RUNAWAY
         elif(t == self.t.P | self.t.SEE):
+            newState = self.s.SEARCH
+        elif(t == self.t.P):
             newState = self.s.SEARCH
         else:
             newState = "error_state"
@@ -218,8 +244,8 @@ class AI:
         
         self.test = self.test + 1
         self.test = self.test%3
-        print("test: ",self.test)
-        self.stateMachine.run(test_queue[self.test])
+        print(self.name," nowTState: ",self.nowTState)
+        self.stateMachine.run(self.nowTState)
         Do = self.stateAction[self.stateMachine.nowState]
         Do()
         #这段代码是测试代码
