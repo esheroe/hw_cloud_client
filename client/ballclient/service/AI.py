@@ -85,14 +85,15 @@ class AI:
                 
         #吃分检测
         for power in self.seePowers:
-                if power not in gameMap.curpowers: #吃到分了
-                    self.seePowers.remove(power)
+            if power not in gameMap.curpowers: #吃到分了
+                self.seePowers.remove(power)
+                
         #todo 我想把power all放在这个里面来，但是放进来后机器人就不动了，暂时没找到bug在哪    
         for cur_power in gameMap.curpowers:
             if(self.mpoint.distance(point(cur_power[1],cur_power[2])) <= self.vision):
                 if cur_power not in self.seePowers:
                     self.seePowers.append(cur_power)
-                gameMap.curpowers.remove(cur_power) #从中取走这个点，避免和其他机器人冲突
+                    gameMap.curpowers.remove(cur_power) #从中取走这个点，避免和其他机器人冲突
                 print ("new ",self.name,": ",cur_power)
                 print("gCurpowers:",gameMap.curpowers)
                 break
@@ -190,7 +191,7 @@ class AI:
         
         
     def run(self):
-        if len(self.powers):
+        if len(self.seePowers):
             self.target.x=self.seePowers[0][1]
             self.target.y=self.seePowers[0][2]
             print(self.target.y,'choose  power',self.target.x,self.name)
@@ -207,14 +208,14 @@ class AI:
         
         #这段代码是测试代码
         #测试序列 理论上转移 origin state-> SEARCH_STATE -> CATCH -> RUNAWAY_STATE
-        test_queue = [(self.t.P | self.t.SEE),(self.t.P | self.t.SEE | self.t.BIGFISH),self.t.SEE]
+#        test_queue = [(self.t.P | self.t.SEE),(self.t.P | self.t.SEE | self.t.BIGFISH),self.t.SEE]
         
-        self.test = self.test + 1
-        self.test = self.test%3
-        print("test: ",self.test)
-        self.stateMachine.run(test_queue[self.test])
-        Do = self.stateAction[self.stateMachine.nowState]
-        Do()
+#        self.test = self.test + 1
+#        self.test = self.test%3
+#        print("test: ",self.test)
+#        self.stateMachine.run(test_queue[self.test])
+#        Do = self.stateAction[self.stateMachine.nowState]
+#        Do()
         #这段代码是测试代码
         
       
