@@ -19,6 +19,8 @@ class point:
             return math.fabs(self.x-p.x)
         else:
             return math.fabs(self.y-p.y)
+    def equals(self,p):
+        return self.x == p.x and self.y == p.y
         
 class Transition:
     def __init__(self):
@@ -42,7 +44,18 @@ class State:
         self.CATCH = "CATCH_STATE"
         self.ERROR = "ERROR_STATE"
 
+
+
+
+
 class AI:
+    
+    '''这一块是类的共享变量，所有类的实例共享一份'''
+    subMapCent = [] #四个分裂子图的中心坐标
+    #stuipid数据
+
+    '''共享变量END'''
+    
     def __init__(self, id,vision,name):
         self.isvalid=True
         self.id=id
@@ -80,7 +93,7 @@ class AI:
         self.stateAction[self.s.RUNAWAY] = self.runaway
         self.stateAction[self.s.CATCH] = self.catch
         
-        self.test = 0#测试用的
+        #self.test = 0#测试用的
         
 
         
@@ -132,6 +145,8 @@ class AI:
         
         #状态转移
     def origin_transition(self,TState):
+        #在状态转移之前，执行一次start函数
+        self.start()
         t = TState & 0x0f #取低四位
         if(t == self.t.P):
             newState = self.s.SEARCH
@@ -206,14 +221,26 @@ class AI:
     def search(self):
         logger.info("%s Do search", self.name)
         
+        
+        
+        #根据视野范围，决定计算搜索路径
+        
+        #过滤掉路径里的不可达点
+        
+        #建立视觉地图，判断对方可能在的坐标，根据贝叶斯框架
+        
     def catch(self):
         logger.info("%s Do catch", self.name)
         
     def runaway(self):
         logger.info("%s Do runaway", self.name)
         
+        
+    #这个函数理论上只在leg start的时候执行，所以在这里分裂子图，初始化搜索
     def start(self):
         logger.info("%s Do start", self.name)
+        
+        #首先分裂图，成四个子图，选取每个子图的中心，根据距离选取每个人搜索的子图大小
         
             
         
@@ -222,12 +249,21 @@ class AI:
         if len(self.seePowers):
             self.target.x=self.seePowers[0][1]
             self.target.y=self.seePowers[0][2]
+            #logger.info("%s target [%s,%s]",)
             #print(self.target.y,'choose  power',self.target.x,self.name)
             logger.info("%s choose power [%s,%s]",self.name,self.target.x,self.target.y)
             #必须保证waypoints不为空，否则肯定会出错
         else:
-            self.target.x=self.waypoint[self.vis_num].x
-            self.target.y=self.waypoint[self.vis_num].y
+            if self.waypoint:#当waypoint不为空才赋值 
+                logger.info("target为waypoint坐标")
+                self.target.x=self.waypoint[self.vis_num].x
+                self.target.y=self.waypoint[self.vis_num].y
+            else:#否则就给自己坐标，不动
+                logger.info("target为自身坐标")
+                self.target.x = self.mpoint.x
+                self.target.y = self.mpoint.y
+        
+        #干掉waypoint这段也要干掉，不然会跑飞
         if self.mpoint.x ==self.waypoint[self.vis_num].x and self.mpoint.y ==self.waypoint[self.vis_num].y :
             #print('arrive waypoint ',self.vis_num,' ',self.mpoint.x,' ',self.mpoint.y)
             logger.info("%s arrive num[%s] waypoint: [%s,%s]",self.name,self.vis_num\
@@ -237,29 +273,30 @@ class AI:
                 self.vis_num=0
         
         
+        
         #这段代码是测试代码
         #测试序列 理论上转移 origin state-> SEARCH_STATE -> CATCH -> RUNAWAY_STATE
-        test_queue = [(self.t.P | self.t.SEE),(self.t.P | self.t.SEE | self.t.BIGFISH),self.t.SEE]
-        
-        self.test = self.test + 1
-        self.test = self.test%3
+        #test_queue = [(self.t.P | self.t.SEE),(self.t.P | self.t.SEE | self.t.BIGFISH),self.t.SEE]
+
         logger.finfo(self.name," nowTState: ",self.nowTState)
         self.stateMachine.run(self.nowTState)
         Do = self.stateAction[self.stateMachine.nowState]
         Do()
         #这段代码是测试代码
         
-      
+        
+        
+        
 class Team:
     def __init__(self):
         self.stupid=AI(gameMap.ourPlayer[0],gameMap.vision,'stupid')
         self.idiot=AI(gameMap.ourPlayer[1],gameMap.vision,'idiot')
         self.fool=AI(gameMap.ourPlayer[2],gameMap.vision,'fool')
         self.git=AI(gameMap.ourPlayer[3],gameMap.vision,'git')
+        
+        
         self.stupid.waypoint.append(point(4,18))
-        #self.stupid.waypoint.append(point(3,8))
-        #self.stupid.waypoint.append(point(3,3))
-        #self.stupid.waypoint.append(point(8,3))
+
         self.stupid.waypoint.append(point(4,4))
         
         self.idiot.waypoint.append(point(3,6))
@@ -273,7 +310,10 @@ class Team:
         
         self.git.waypoint.append(point(16,18))
         self.git.waypoint.append(point(16,4))
+        
         #self.git.waypoint.append(point(3,16))
+        
+        
         self.a_star = A_Star(0, 0, 0, 0,gameMap.height,gameMap.width)
     
     def update(self):
