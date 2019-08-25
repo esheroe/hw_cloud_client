@@ -7,6 +7,7 @@ Created on Wed Aug 21 20:00:57 2019
 from ballclient.service.astar import A_Star
 from ballclient.service.GameMap import gameMap as gameMap
 from ballclient.service.StateMachine import StateMachine
+from ballclient.service.Log import logger
 import math
 class point:
     def __init__(self,x,y):
@@ -101,8 +102,9 @@ class AI:
                 if cur_power not in self.seePowers:
                     self.seePowers.append(cur_power)
                     gameMap.curpowers.remove(cur_power) #从中取走这个点，避免和其他机器人冲突
-                print ("new ",self.name,": ",cur_power)
-                print("gCurpowers:",gameMap.curpowers)
+                #print ("new ",self.name,": ",cur_power)
+                logger.info("new %s: %s",self.name,cur_power)
+                #print("gCurpowers:",gameMap.curpowers)
                 break
 
 
@@ -141,7 +143,7 @@ class AI:
             newState = self.s.SEARCH
         else:
             newState = "error_state"
-        print("origin state->",newState)
+        logger.finfo("origin state->",newState)
         return newState
 
     #search score state
@@ -161,7 +163,7 @@ class AI:
             newState = self.s.SEARCH
         else:
             newState = "error_state"
-        print("search_score_state->",newState)
+        logger.finfo("search_score_state->",newState)
         return newState
     
     def runaway_transition(self,TState):
@@ -178,7 +180,7 @@ class AI:
             newState = self.s.SEARCH
         else:
             newState = "error_state"
-        print("run_away_state->",newState)
+        logger.finfo("run_away_state->",newState)
     
         return newState
     
@@ -196,22 +198,22 @@ class AI:
             newState = self.s.SEARCH
         else:
             newState = "error_state"
-        print("catch_state->",newState)
+        logger.finfo("catch_state->",newState)
     
         return newState
     
     #state action 在某个状态下做什么事，就在这里写了
     def search(self):
-        print("Do search")
+        logger.info("%s Do search", self.name)
         
     def catch(self):
-        print("Do catch")
+        logger.info("%s Do catch", self.name)
         
     def runaway(self):
-        print("Do runaway")
+        logger.info("%s Do runaway", self.name)
         
     def start(self):
-        print("Do start")
+        logger.info("%s Do start", self.name)
         
             
         
@@ -220,13 +222,16 @@ class AI:
         if len(self.seePowers):
             self.target.x=self.seePowers[0][1]
             self.target.y=self.seePowers[0][2]
-            print(self.target.y,'choose  power',self.target.x,self.name)
+            #print(self.target.y,'choose  power',self.target.x,self.name)
+            logger.info("%s choose power [%s,%s]",self.name,self.target.x,self.target.y)
             #必须保证waypoints不为空，否则肯定会出错
         else:
             self.target.x=self.waypoint[self.vis_num].x
             self.target.y=self.waypoint[self.vis_num].y
         if self.mpoint.x ==self.waypoint[self.vis_num].x and self.mpoint.y ==self.waypoint[self.vis_num].y :
-            print('arrive waypoint ',self.vis_num,' ',self.mpoint.x,' ',self.mpoint.y)
+            #print('arrive waypoint ',self.vis_num,' ',self.mpoint.x,' ',self.mpoint.y)
+            logger.info("%s arrive num[%s] waypoint: [%s,%s]",self.name,self.vis_num\
+                        ,self.mpoint.x,self.mpoint.y)
             self.vis_num=self.vis_num+1
             if self.vis_num>=len(self.waypoint):
                 self.vis_num=0
@@ -238,7 +243,7 @@ class AI:
         
         self.test = self.test + 1
         self.test = self.test%3
-        print(self.name," nowTState: ",self.nowTState)
+        logger.finfo(self.name," nowTState: ",self.nowTState)
         self.stateMachine.run(self.nowTState)
         Do = self.stateAction[self.stateMachine.nowState]
         Do()

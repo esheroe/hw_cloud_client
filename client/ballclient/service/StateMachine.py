@@ -4,6 +4,8 @@ Created on Fri Aug 23 14:04:34 2019
 
 @author: GP63
 """
+from ballclient.service.Log import logger
+
 
 class StateMachine:
     def __init__(self): 
@@ -51,11 +53,11 @@ class StateMachine:
         #newTrans = newTrans     # 经过状态转移函数变换到新状态
         newState = self.handler(newTrans)
         self.nowState = newState
-        print("nowState:",self.nowState)
+        logger.info("nowState: %s",self.nowState)
         #print("startState",self.startState)
         if newState.upper() in self.endStates: # 如果跳到终止状态,则打印状态并结束循环
-            print("reached ", newState)
-            print("return to ",self.startState)
+            logger.ferror("reached ", newState, " Trans: ",newTrans)
+            #logger.ferror("return to ",self.startState)
             self.nowState = self.startState
              
         else:                        # 否则将转移函数切换为新状态下的转移函数 
