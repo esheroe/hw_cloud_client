@@ -6,7 +6,7 @@ Created on Sun Aug 25 11:19:40 2019
 """
 import os
 import logging
-
+import sys
 
 
 # 单例模式
@@ -44,7 +44,7 @@ class Log:
         self.stream_handler = logging.StreamHandler()
         
         # 定义输出格式
-        self.formatter = logging.Formatter('[%(levelname)s] - %(filename)s - [line:%(lineno)d] : %(message)s')
+        self.formatter = logging.Formatter('[%(levelname)s] : %(message)s')
         #file_handler.setFormatter(self.formatter)
         #self.fh.setFormatter(self.formatter)
         self.stream_handler.setFormatter(self.formatter)
@@ -115,10 +115,13 @@ if __name__ == '__main__':
     
     logger.finfo('warn meesage %s',a)
     logger.fwarning('info message')
+   
+def function():
+    print(sys._getframe().f_code.co_filename)  #当前位置所在的文件名
+    print(sys._getframe().f_code.co_name)      #当前位置所在的函数名
+    print(sys._getframe().f_lineno)            #当前位置所在的行号 
 
-    
-    
-    
+function()
     
         
         

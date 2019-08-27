@@ -3,6 +3,8 @@
 import copy
 #import matplotlib.pyplot as plt
 import ballclient.service.constants as constants
+from ballclient.service.Log import logger
+
 #import constants as constants
 
 '''
@@ -52,6 +54,9 @@ class GameMap(object):
         self.ourMode      = 0   #表示我方能力 think，beat
         self.currentMode  = 0   #表示当前优势能力 think，beat
         
+        #子图的中点坐标[[x1,y1],[x2,y2] ... ]
+        self.subMap       = []
+        
     def printAll(self):
         print ('h:',self.height,'w:',self.width)
         print ('powers: ',self.powers)
@@ -75,7 +80,7 @@ class GameMap(object):
 
         self.vision = msg['msg_data']['map']['vision']
         
-        
+
         '''生成陨石坐标'''
         meteor = msg['msg_data']['map']['meteor']
         for dic in meteor:
@@ -143,6 +148,12 @@ class GameMap(object):
             if team['id'] == constants.team_id:
                 self.ourPlayer = team['players']
                 self.ourMode   = team['force']
+                
+        '''生成子图中心'''
+        lux = int((self.width+4-1)/4) #left up x 向上取整除法
+        luy = int((self.height+4-1)/4)#left up y
+        self.subMap = [[lux,luy],[lux,luy*3],[lux*3,luy],[lux*3,luy*3]]
+        logger.info("subMap : %s",self.subMap)
 
                 
                     

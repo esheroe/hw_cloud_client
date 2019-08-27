@@ -6,6 +6,27 @@ Created on Fri Aug 23 14:04:34 2019
 """
 from ballclient.service.Log import logger
 
+class Transition:
+    def __init__(self):
+        '''
+        t.P | t.SEE | t.BIGFISH = 19
+        t.P | t.SEE             = 3
+        t.SEE | t.BIGFISH       = 18
+        t.SEE                   = 2
+        UNSEE                   = 0
+        '''
+        self.N = 0
+        self.P = 1
+        self.SEE = 2
+        self.BIGFISH = 16
+        
+class State:
+    def __init__(self):
+        self.START = "START_STATE"
+        self.RUNAWAY = "RUNAWAY_STATE"
+        self.SEARCH = "SEARCH_STATE"
+        self.CATCH = "CATCH_STATE"
+        self.ERROR = "ERROR_STATE"
 
 class StateMachine:
     def __init__(self): 

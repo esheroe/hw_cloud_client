@@ -11,6 +11,8 @@
 import ballclient.service.constants as constants
 from ballclient.service.GameMap import gameMap as gameMap
 from ballclient.service.AI import Team
+from ballclient.service.Log import logger
+
 #import random
 
 def leg_start(msg):
@@ -22,6 +24,8 @@ def leg_start(msg):
     gameMap.handleMsg(msg)
     for i in range(len(gameMap.map)):
         print (gameMap.map[i])
+        logger.finfo(gameMap.map[i])
+        
     global moyu
     moyu=Team()
     
@@ -67,6 +71,7 @@ def round(msg):
     return type: dict
     '''
     #print("round")
+ 
     gameMap.updateMsg(msg)
     round_id = int(msg['msg_data']['round_id'])
     players = msg['msg_data']['players']
@@ -97,3 +102,4 @@ def round(msg):
                    "move": [direction[moves[3]]]})
     result['msg_data']['actions'] = action
     return result
+

@@ -6,13 +6,19 @@ Created on Wed Aug 21 20:00:57 2019
 """
 from ballclient.service.astar import A_Star
 from ballclient.service.GameMap import gameMap as gameMap
-from ballclient.service.StateMachine import StateMachine
+from ballclient.service.StateMachine import *
 from ballclient.service.Log import logger
 import math
+import copy
+
 class point:
     def __init__(self,x,y):
         self.x=x
         self.y=y
+        
+    #自定义了个打印函数
+    def __str__(self):
+        return "(%d, %d)"%(self.x,self.y)
     
     def distance(self,p):
         if math.fabs(self.x-p.x)>math.fabs(self.y-p.y):
@@ -21,37 +27,25 @@ class point:
             return math.fabs(self.y-p.y)
     def equals(self,p):
         return self.x == p.x and self.y == p.y
-        
-class Transition:
-    def __init__(self):
-        '''
-        t.P | t.SEE | t.BIGFISH = 19
-        t.P | t.SEE             = 3
-        t.SEE | t.BIGFISH       = 18
-        t.SEE                   = 2
-        UNSEE                   = 0
-        '''
-        self.N = 0
-        self.P = 1
-        self.SEE = 2
-        self.BIGFISH = 16
-        
-class State:
-    def __init__(self):
-        self.START = "START_STATE"
-        self.RUNAWAY = "RUNAWAY_STATE"
-        self.SEARCH = "SEARCH_STATE"
-        self.CATCH = "CATCH_STATE"
-        self.ERROR = "ERROR_STATE"
-
-
+    
+    def SymPoint(self, w, h):#算中心中心对称点
+        sx = w-self.x
+        sy = h-self.y
+        return point(sx,sy)
 
 
 
 class AI:
     
     '''这一块是类的共享变量，所有类的实例共享一份'''
-    subMapCent = [] #四个分裂子图的中心坐标
+    #四个分裂子图的中心坐标
+    subMapCent = []
+    
+    #这个unsee map也是 y,x的方式储存坐标
+    unseeMap   = []
+    
+    allUnseeList = []
+    
     #stuipid数据
 
     '''共享变量END'''
@@ -94,8 +88,22 @@ class AI:
         self.stateAction[self.s.CATCH] = self.catch
         
         #self.test = 0#测试用的
+        AI.subMapCent = [point(gameMap.subMap[0][0],gameMap.subMap[0][1]),\
+              point(gameMap.subMap[1][0],gameMap.subMap[1][1]),\
+              point(gameMap.subMap[2][0],gameMap.subMap[2][1]),\
+              point(gameMap.subMap[3][0],gameMap.subMap[3][1])]
         
-
+        AI.unseeMap = [[0 for col in range(gameMap.width)]\
+                        for row in range(gameMap.height)]
+        
+        self.mCentre = point(0,0)#子图中点
+        
+        #子图的两个边界点 
+        self.subMap = []
+        
+        #没看过的点 [x,y]
+        self.unseeList = []
+        AI.allUnseeList.append(self.unseeList)
         
     def update(self):
         self.isvalid=False
@@ -103,6 +111,8 @@ class AI:
             if pinfo[0]==self.id:
                 self.isvalid=True
                 self.mpoint=point(pinfo[1],pinfo[2])
+        
+        
                 
         #吃分检测
         for power in self.seePowers:
@@ -121,9 +131,6 @@ class AI:
                 break
 
 
-        
-        
-        #todo 这个更新状态还没做，参考run下面的代码做状态更新
         '''更新状态'''
         self.nowTState = 0 #每回合状态清零
         if gameMap.isOurPower():
@@ -137,10 +144,33 @@ class AI:
                 if opp[3] >= 20:                     #大于20分的敌人认为是大鱼
                     self.nowTState |= self.t.BIGFISH #看到大鱼了
         
+        '''更新unsee地图'''
+        v = self.vision
         
+        lx   = 0 if self.mpoint.x-v<0 else self.mpoint.x-v
+        ly   = 0 if self.mpoint.y-v<0 else self.mpoint.y-v
         
+        hx   = gameMap.width if self.mpoint.x+v >= gameMap.width else self.mpoint.x+v+1
+        hy   = gameMap.width if self.mpoint.y+v >= gameMap.width else self.mpoint.y+v+1
+        logger.finfo("%s : (%s)",self.name,self.mpoint)
+        for x in range(lx,hx):
+            for y in range(ly,hy):
+                #logger.finfo("range (%s,%s)",x,y)
+                AI.unseeMap[y][x] = 1
+                if [x,y] in self.unseeList:
+                    self.unseeList.remove([x,y])
+        AI.unseeMap[self.mpoint.y][self.mpoint.x] = 2;
+        if (self.name == 'git'):
+            logger.finfo("=== unsee map ===")
+            for i in range(len(AI.unseeMap)):
+                logger.finfo(AI.unseeMap[i])
         
-        
+            logger.finfo("===%s update unseeList===")
+            logger.finfo(AI.allUnseeList)
+            
+        logger.finfo("===",self.name,"unsee List===")
+        logger.finfo(self.unseeList)
+        #todo unseenlist 还有重叠部分，除了自己看到以外，别人也有可能看到，因此需要同步更新
         
         
         #状态转移
@@ -217,23 +247,28 @@ class AI:
     
         return newState
     
+    
+    
+    
+    
     #state action 在某个状态下做什么事，就在这里写了
     def search(self):
-        logger.info("%s Do search", self.name)
-        
-        
-        
-        #根据视野范围，决定计算搜索路径
-        
-        #过滤掉路径里的不可达点
-        
-        #建立视觉地图，判断对方可能在的坐标，根据贝叶斯框架
+        logger.finfo("%s Do search", self.name)
+        #选取unsee点游走
+        print(point(self.unseeList[0][0],self.unseeList[0][1]))
+        p = point(self.unseeList[0][0],self.unseeList[0][1])
+        if len(self.unseeList):
+            self.goTo(p)
+            logger.finfo(self.target)
+            
+        #当搜索过全图以后，选取得分点
         
     def catch(self):
         logger.info("%s Do catch", self.name)
         
     def runaway(self):
         logger.info("%s Do runaway", self.name)
+        #simple runaway 
         
         
     #这个函数理论上只在leg start的时候执行，所以在这里分裂子图，初始化搜索
@@ -241,6 +276,48 @@ class AI:
         logger.info("%s Do start", self.name)
         
         #首先分裂图，成四个子图，选取每个子图的中心，根据距离选取每个人搜索的子图大小
+        d = 25
+        if self.mCentre.equals(point(0,0)):
+            for c in AI.subMapCent:
+                if c.distance(self.mpoint) < d:
+                    d = c.distance(self.mpoint)
+                    self.mCentre = c
+            AI.subMapCent.remove(self.mCentre)
+            logger.info("%s choose mCentre %s",self.name,self.mCentre)
+        self.waypoint.append(self.mCentre)
+        
+        
+        #选取中心点后建立未搜索子图
+        halfx = int((gameMap.width+1)/2)
+        halfy = int((gameMap.height+1)/2)
+        x = gameMap.width
+        y = gameMap.height
+        
+
+        #左上角        
+        if self.mCentre.equals(point(gameMap.subMap[0][0],gameMap.subMap[0][1])):
+            self.subMap = [0,0,halfx,halfy]
+           
+        #左下角
+        elif self.mCentre.equals(point(gameMap.subMap[1][0],gameMap.subMap[1][1])):
+            self.subMap = [0,halfy,halfx,y]
+            
+        #右上角
+        elif self.mCentre.equals(point(gameMap.subMap[2][0],gameMap.subMap[2][1])):
+            self.subMap = [halfx,0,x,halfy]
+            
+        #右下角
+        elif self.mCentre.equals(point(gameMap.subMap[3][0],gameMap.subMap[3][1])):
+            self.subMap = [halfx,halfy,x,y]
+            
+        
+        for x in range(self.subMap[0],self.subMap[2]):
+            for y in range(self.subMap[1],self.subMap[3]):
+                if AI.unseeMap[y][x] == 0:
+                    self.unseeList.append([x,y])
+        logger.finfo("===%s unseeList===",self.name)
+        logger.finfo(self.unseeList)
+    # end def start()
         
             
         
@@ -263,8 +340,8 @@ class AI:
                 self.target.x = self.mpoint.x
                 self.target.y = self.mpoint.y
         
-        #干掉waypoint这段也要干掉，不然会跑飞
-        if self.mpoint.x ==self.waypoint[self.vis_num].x and self.mpoint.y ==self.waypoint[self.vis_num].y :
+
+        if self.mpoint.equals(self.target):
             #print('arrive waypoint ',self.vis_num,' ',self.mpoint.x,' ',self.mpoint.y)
             logger.info("%s arrive num[%s] waypoint: [%s,%s]",self.name,self.vis_num\
                         ,self.mpoint.x,self.mpoint.y)
@@ -274,7 +351,7 @@ class AI:
         
         
         
-        #这段代码是测试代码
+        
         #测试序列 理论上转移 origin state-> SEARCH_STATE -> CATCH -> RUNAWAY_STATE
         #test_queue = [(self.t.P | self.t.SEE),(self.t.P | self.t.SEE | self.t.BIGFISH),self.t.SEE]
 
@@ -282,7 +359,50 @@ class AI:
         self.stateMachine.run(self.nowTState)
         Do = self.stateAction[self.stateMachine.nowState]
         Do()
-        #这段代码是测试代码
+        
+    def goTo(self,p):#这个函数，用来计算target的，回避掉不可达点
+        print("goto")
+        print(gameMap.map[p.y][p.x])
+        while 30 > gameMap.map[p.y][p.x] > 6:
+            '''
+            #从隧道滑开
+            if(gameMap.map[p.y][p.x] == 20):
+                p.y -= 1
+            if(gameMap.map[p.y][p.x] == 21):
+                p.y += 1
+            if(gameMap.map[p.y][p.x] == 22):
+                p.x -= 1
+            if(gameMap.map[p.y][p.x] == 23):
+                p.x += 1
+            '''
+            
+            #如果是障碍物,外围往中心滑，中心往外滑
+           # if(gameMap.map[p.y][p.x] == 8):
+            halfx = int(gameMap.width/2)
+            halfy = int(gameMap.height/2)
+            dx = 1 if halfx-p.x>0 else -1
+            dy = 1 if halfy-p.y>0 else -1
+            if point(halfx,halfy).distance(p) < 3:
+                dx = -dx
+                dy = -dy
+            p.x += dx
+            p.y += dy
+                
+        self.target.x = p.x
+        self.target.y = p.y
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
         
         
@@ -293,26 +413,7 @@ class Team:
         self.idiot=AI(gameMap.ourPlayer[1],gameMap.vision,'idiot')
         self.fool=AI(gameMap.ourPlayer[2],gameMap.vision,'fool')
         self.git=AI(gameMap.ourPlayer[3],gameMap.vision,'git')
-        
-        
-        self.stupid.waypoint.append(point(4,18))
-
-        self.stupid.waypoint.append(point(4,4))
-        
-        self.idiot.waypoint.append(point(3,6))
-        self.idiot.waypoint.append(point(11,6))
-        self.idiot.waypoint.append(point(3,16))
-       # self.idiot.waypoint.append(point(16,16))
-        
-        self.fool.waypoint.append(point(5,16))
-        self.fool.waypoint.append(point(11,16))
-        self.fool.waypoint.append(point(16,16))
-        
-        self.git.waypoint.append(point(16,18))
-        self.git.waypoint.append(point(16,4))
-        
-        #self.git.waypoint.append(point(3,16))
-        
+              
         
         self.a_star = A_Star(0, 0, 0, 0,gameMap.height,gameMap.width)
     
@@ -351,29 +452,8 @@ class Team:
             action.append(0)
         return action
         
-    def power_all(self):
-        self.stupid.powers.clear()
-        self.idiot.powers.clear()
-        self.fool.powers.clear()
-        self.git.powers.clear()
-        for cur_power in gameMap.curpowers:
-            if getdis(self.stupid.mpoint,point(cur_power[1],cur_power[2]))<=self.stupid.vision:
-                self.stupid.powers.append(point(cur_power[1],cur_power[2]))
-                #print ("stupid power: ",cur_power)
-                continue
-            if getdis(self.idiot.mpoint,point(cur_power[1],cur_power[2]))<=self.idiot.vision:
-                self.idiot.powers.append(point(cur_power[1],cur_power[2]))
-                #print ("idiot power: ",cur_power)
-                continue
-            if getdis(self.fool.mpoint,point(cur_power[1],cur_power[2]))<=self.fool.vision:
-                self.fool.powers.append(point(cur_power[1],cur_power[2]))
-                #print ("fool power: ",cur_power)
-                continue
-            if getdis(self.git.mpoint,point(cur_power[1],cur_power[2]))<=self.git.vision:
-                self.git.powers.append(point(cur_power[1],cur_power[2]))
-                #print ("git power: ",cur_power)
-                continue
-            
+
+        
         
 def getdis(p1,p2):
     if math.fabs(p1.x-p2.x)>math.fabs(p1.y-p2.y):
@@ -393,5 +473,31 @@ if 1:
     moyu.power_all(power)
     moyu.process()
     print('test')
-"""
-        
+
+def goto(p):#这个函数，用来计算target的，回避掉不可达点
+    while 30 > gameMap[p.y][p.x] > 6:
+        #从隧道滑开
+        if(gameMap[p.y][p.x] == 20):
+            p.y -= 1
+        if(gameMap[p.y][p.x] == 21):
+            p.y += 1
+        if(gameMap[p.y][p.x] == 22):
+            p.x -= 1
+        if(gameMap[p.y][p.x] == 23):
+            p.x += 1
+
+        #如果是障碍物,外围往中心滑，中心往外滑
+        if(gameMap[p.y][p.x] == 8):
+            halfx = int(gameMap.width/2)
+            halfy = int(gameMap.height/2)
+            dx = 1 if halfx-p.x>0 else -1
+            dy = 1 if halfy-p.y>0 else -1
+            if point(halfx,halfy).distance(p) < 3:
+                dx = -dx
+                dy = -dy
+            p.x += dx
+            p.y += dy
+
+            
+    return p
+ """       
