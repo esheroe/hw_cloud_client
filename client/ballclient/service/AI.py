@@ -8,13 +8,15 @@ from ballclient.service.astar import A_Star
 from ballclient.service.GameMap import gameMap as gameMap
 from ballclient.service.StateMachine import *
 from ballclient.service.Log import logger
+from ballclient.service.SharedDataBase import db #共享数据库
 import math
 import copy
 
 class point:
-    def __init__(self,x,y):
+    def __init__(self,x,y,power = 0):
         self.x=x
         self.y=y
+        self.power = power #当这个坐标表示分数的时候，这个值表示分值
         
     #自定义了个打印函数
     def __str__(self):
@@ -28,13 +30,16 @@ class point:
     def equals(self,p):
         return self.x == p.x and self.y == p.y
     
-    def SymPoint(self, w, h):#算中心中心对称点
+    def SymPoint(self):#算中心中心对称点
+        w = gameMap.width
+        h = gameMap.height
         sx = w-self.x
         sy = h-self.y
         return point(sx,sy)
-
-
-
+    
+    
+    
+        
 class AI:
     
     '''这一块是类的共享变量，所有类的实例共享一份'''
@@ -45,7 +50,7 @@ class AI:
     unseeMap   = []
     
     allUnseeList = []
-    
+        
     #stuipid数据
 
     '''共享变量END'''
@@ -102,6 +107,10 @@ class AI:
         self.subMap = []
         
         #没看过的点 [x,y]
+        
+        
+        if self.name not in db.names:#注册数据库
+            db.register(self.name)
         self.unseeList = []
         AI.allUnseeList.append(self.unseeList)
         
@@ -111,24 +120,33 @@ class AI:
             if pinfo[0]==self.id:
                 self.isvalid=True
                 self.mpoint=point(pinfo[1],pinfo[2])
-        
-        
+                if self.name in db.returnNames:
+                    db.restorePower(self.name)
                 
-        #吃分检测
+
+        if not self.isvalid:
+            #如果被吃掉，那么就要把自己分配的分数归还，然后重新给其他人分配分数点
+            db.returnPower(self.name)
+            print(self.name,"not in current player")
+            return   
+
+
+            
+
+                
+        '''更新 db power'''
         for power in self.seePowers:
-            if power not in gameMap.curpowers: #吃到分了
-                self.seePowers.remove(power)
-                
-        #todo 我想把power all放在这个里面来，但是放进来后机器人就不动了，暂时没找到bug在哪    
-        for cur_power in gameMap.curpowers:
-            if(self.mpoint.distance(point(cur_power[1],cur_power[2])) <= self.vision):
-                if cur_power not in self.seePowers:
-                    self.seePowers.append(cur_power)
-                    gameMap.curpowers.remove(cur_power) #从中取走这个点，避免和其他机器人冲突
-                #print ("new ",self.name,": ",cur_power)
-                logger.info("new %s: %s",self.name,cur_power)
-                #print("gCurpowers:",gameMap.curpowers)
-                break
+            if power not in db.powers[self.name]:
+                p = point(power[1],power[2],power[0])
+                logger.finfo("update power: ", p,p.power)
+                p2 = copy.deepcopy(power)
+                db.updatePower(self.name,p2)
+        if self.name == 'stupid':
+            logger.ferror("db all power: ",db.allPowers)
+
+        logger.ferror(self.name,"db power: ",db.powers[self.name])
+        
+        
 
 
         '''更新状态'''
@@ -146,30 +164,29 @@ class AI:
         
         '''更新unsee地图'''
         v = self.vision
-        
-        lx   = 0 if self.mpoint.x-v<0 else self.mpoint.x-v
-        ly   = 0 if self.mpoint.y-v<0 else self.mpoint.y-v
-        
-        hx   = gameMap.width if self.mpoint.x+v >= gameMap.width else self.mpoint.x+v+1
-        hy   = gameMap.width if self.mpoint.y+v >= gameMap.width else self.mpoint.y+v+1
-        logger.finfo("%s : (%s)",self.name,self.mpoint)
-        for x in range(lx,hx):
-            for y in range(ly,hy):
-                #logger.finfo("range (%s,%s)",x,y)
-                AI.unseeMap[y][x] = 1
-                if [x,y] in self.unseeList:
-                    self.unseeList.remove([x,y])
-        AI.unseeMap[self.mpoint.y][self.mpoint.x] = 2;
-        if (self.name == 'git'):
-            logger.finfo("=== unsee map ===")
-            for i in range(len(AI.unseeMap)):
-                logger.finfo(AI.unseeMap[i])
-        
-            logger.finfo("===%s update unseeList===")
-            logger.finfo(AI.allUnseeList)
+        if gameMap.leg == 1:
+            lx   = 0 if self.mpoint.x-v<0 else self.mpoint.x-v
+            ly   = 0 if self.mpoint.y-v<0 else self.mpoint.y-v
             
-        logger.finfo("===",self.name,"unsee List===")
-        logger.finfo(self.unseeList)
+            hx   = gameMap.width if self.mpoint.x+v >= gameMap.width else self.mpoint.x+v+1
+            hy   = gameMap.width if self.mpoint.y+v >= gameMap.width else self.mpoint.y+v+1
+            for x in range(lx,hx):
+                for y in range(ly,hy):
+                    #logger.finfo("range (%s,%s)",x,y)
+                    AI.unseeMap[y][x] = 1
+                    if [x,y] in self.unseeList:
+                        self.unseeList.remove([x,y])
+            AI.unseeMap[self.mpoint.y][self.mpoint.x] = 2;
+            if (self.name == 'git'):
+                logger.finfo("=== unsee map ===")
+                for i in range(len(AI.unseeMap)):
+                    logger.finfo(AI.unseeMap[i])
+            
+                logger.finfo("===%s update unseeList===")
+                logger.finfo(AI.allUnseeList)
+                
+            logger.finfo("===",self.name,"unsee List===")
+            logger.finfo(self.unseeList)
         #todo unseenlist 还有重叠部分，除了自己看到以外，别人也有可能看到，因此需要同步更新
         
         
@@ -255,13 +272,37 @@ class AI:
     def search(self):
         logger.finfo("%s Do search", self.name)
         #选取unsee点游走
-        print(point(self.unseeList[0][0],self.unseeList[0][1]))
-        p = point(self.unseeList[0][0],self.unseeList[0][1])
+        
         if len(self.unseeList):
-            self.goTo(p)
+            print(point(self.unseeList[0][0],self.unseeList[0][1]))
+            p = point(self.unseeList[0][0],self.unseeList[0][1])
+            self.goto(p)
             logger.finfo(self.target)
             
-        #当搜索过全图以后，选取得分点
+            return
+        #当搜索过全图以后，选取得分点跑位
+        ''' 更新 waypoint  
+       
+        if len(db.returnNames):#添加 returnpowers到waypoint里去
+            rn = db.returnNames[0]
+            self.waypoint.append(db.returnPowers[rn][1],\
+                                 db.returnPowers[rn][2])
+        else:
+            self.waypoint.append(db.powers[self.name][1],\
+                                 db.powers[self.name][2])
+        
+        print("==============更新过全图================")
+        if len(db.returnNames):
+            print("returnName:", db.returnNames)
+            print("returnName[0]",db.returnNames[0])
+            print("returnPower: ",db.returnPowers)
+            print("returnPower name[0]",db.returnPowers[db.returnNames[0]])
+            print("use returnPower", db.useReturnPower(db.returnNames[0]))
+        print(self.name,"db powers:", db.powers[self.name])
+        '''
+        #如果跑位的时候看到分优先吃分
+        self.eat()
+
         
     def catch(self):
         logger.info("%s Do catch", self.name)
@@ -310,47 +351,19 @@ class AI:
         elif self.mCentre.equals(point(gameMap.subMap[3][0],gameMap.subMap[3][1])):
             self.subMap = [halfx,halfy,x,y]
             
-        
-        for x in range(self.subMap[0],self.subMap[2]):
-            for y in range(self.subMap[1],self.subMap[3]):
-                if AI.unseeMap[y][x] == 0:
-                    self.unseeList.append([x,y])
-        logger.finfo("===%s unseeList===",self.name)
-        logger.finfo(self.unseeList)
+        if gameMap.leg == 1:
+            for x in range(self.subMap[0],self.subMap[2]):
+                for y in range(self.subMap[1],self.subMap[3]):
+                    if AI.unseeMap[y][x] == 0:
+                        self.unseeList.append([x,y])
+            logger.finfo("===%s unseeList===",self.name)
+            logger.finfo(self.unseeList)
     # end def start()
         
             
         
         
     def run(self):
-        if len(self.seePowers):
-            self.target.x=self.seePowers[0][1]
-            self.target.y=self.seePowers[0][2]
-            #logger.info("%s target [%s,%s]",)
-            #print(self.target.y,'choose  power',self.target.x,self.name)
-            logger.info("%s choose power [%s,%s]",self.name,self.target.x,self.target.y)
-            #必须保证waypoints不为空，否则肯定会出错
-        else:
-            if self.waypoint:#当waypoint不为空才赋值 
-                logger.info("target为waypoint坐标")
-                self.target.x=self.waypoint[self.vis_num].x
-                self.target.y=self.waypoint[self.vis_num].y
-            else:#否则就给自己坐标，不动
-                logger.info("target为自身坐标")
-                self.target.x = self.mpoint.x
-                self.target.y = self.mpoint.y
-        
-
-        if self.mpoint.equals(self.target):
-            #print('arrive waypoint ',self.vis_num,' ',self.mpoint.x,' ',self.mpoint.y)
-            logger.info("%s arrive num[%s] waypoint: [%s,%s]",self.name,self.vis_num\
-                        ,self.mpoint.x,self.mpoint.y)
-            self.vis_num=self.vis_num+1
-            if self.vis_num>=len(self.waypoint):
-                self.vis_num=0
-        
-        
-        
         
         #测试序列 理论上转移 origin state-> SEARCH_STATE -> CATCH -> RUNAWAY_STATE
         #test_queue = [(self.t.P | self.t.SEE),(self.t.P | self.t.SEE | self.t.BIGFISH),self.t.SEE]
@@ -360,9 +373,9 @@ class AI:
         Do = self.stateAction[self.stateMachine.nowState]
         Do()
         
-    def goTo(self,p):#这个函数，用来计算target的，回避掉不可达点
-        print("goto")
-        print(gameMap.map[p.y][p.x])
+    def goto(self,p):#这个函数，用来计算target的，回避掉不可达点
+        logger.fwarning("goto map ",p,": ",gameMap.map[p.y][p.x])
+
         while 30 > gameMap.map[p.y][p.x] > 6:
             '''
             #从隧道滑开
@@ -387,10 +400,53 @@ class AI:
                 dy = -dy
             p.x += dx
             p.y += dy
+        logger.fwarning("goto :",p)
                 
         self.target.x = p.x
         self.target.y = p.y
         
+    def eat(self):#这个东西放在goto的后面，让游荡的时候优先吃分
+        logger.info("%s eat!", self.name)
+        #吃分检测
+        for power in self.seePowers:
+            if power not in gameMap.curpowers: #吃到分了
+                self.seePowers.remove(power)
+                
+        #todo 我想把power all放在这个里面来，但是放进来后机器人就不动了，暂时没找到bug在哪    
+        for cur_power in gameMap.curpowers:
+            if(self.mpoint.distance(point(cur_power[1],cur_power[2])) <= self.vision):
+                if cur_power not in self.seePowers:
+                    self.seePowers.append(cur_power)
+                    gameMap.curpowers.remove(cur_power) #从中取走这个点，避免和其他机器人冲突
+                #print ("new ",self.name,": ",cur_power)
+                logger.info("new %s: %s",self.name,cur_power)
+                #print("gCurpowers:",gameMap.curpowers)
+                break
+        
+        if len(self.seePowers):
+            self.target.x=self.seePowers[0][1]
+            self.target.y=self.seePowers[0][2]
+            #logger.info("%s target [%s,%s]",)
+            #print(self.target.y,'choose  power',self.target.x,self.name)
+            logger.info("%s choose power [%s,%s]",self.name,self.target.x,self.target.y)
+            #必须保证waypoints不为空，否则肯定会出错
+        else:
+            if self.waypoint:#当waypoint不为空才赋值 
+                logger.info("%s target为waypoint坐标",self.name)
+                self.target.x=self.waypoint[self.vis_num].x
+                self.target.y=self.waypoint[self.vis_num].y
+            else:#否则就给自己坐标，不动
+                logger.info("%s target为自身坐标",self.name)
+                self.target.x = self.mpoint.x
+                self.target.y = self.mpoint.y
+        
+        if self.mpoint.equals(self.target):
+            #print('arrive waypoint ',self.vis_num,' ',self.mpoint.x,' ',self.mpoint.y)
+            logger.info("%s arrive num[%s] waypoint: [%s,%s]",self.name,self.vis_num\
+                        ,self.mpoint.x,self.mpoint.y)
+            self.vis_num=self.vis_num+1
+            if self.vis_num>=len(self.waypoint):
+                self.vis_num=0
         
         
         

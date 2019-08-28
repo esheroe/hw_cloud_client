@@ -56,6 +56,7 @@ class GameMap(object):
         
         #子图的中点坐标[[x1,y1],[x2,y2] ... ]
         self.subMap       = []
+        self.leg          = 0#表示第几个回合
         
     def printAll(self):
         print ('h:',self.height,'w:',self.width)
@@ -153,7 +154,6 @@ class GameMap(object):
         lux = int((self.width+4-1)/4) #left up x 向上取整除法
         luy = int((self.height+4-1)/4)#left up y
         self.subMap = [[lux,luy],[lux,luy*3],[lux*3,luy],[lux*3,luy*3]]
-        logger.info("subMap : %s",self.subMap)
 
                 
                     

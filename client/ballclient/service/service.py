@@ -20,8 +20,10 @@ def leg_start(msg):
     :param msg:
     :return: None
     '''
-    print("round start no ")
+    gameMap.leg += 1
+    print("round start no ", gameMap.leg)
     gameMap.handleMsg(msg)
+    
     for i in range(len(gameMap.map)):
         print (gameMap.map[i])
         logger.finfo(gameMap.map[i])
@@ -76,6 +78,7 @@ def round(msg):
     round_id = int(msg['msg_data']['round_id'])
     players = msg['msg_data']['players']
     print('        ########',round_id,'#########   ')
+    logger.fwarning('        ########',round_id,'#########   ')
     direction = {0:'',1: 'up', 2: 'down', 3: 'left', 4: 'right'}
     result = {
         "msg_name": "action",
