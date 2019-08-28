@@ -9,34 +9,11 @@ from ballclient.service.GameMap import gameMap as gameMap
 from ballclient.service.StateMachine import *
 from ballclient.service.Log import logger
 from ballclient.service.SharedDataBase import db #共享数据库
+from ballclient.service.SharedDataBase import point #共享数据库
+
 import math
 import copy
 
-class point:
-    def __init__(self,x,y,power = 0):
-        self.x=x
-        self.y=y
-        self.power = power #当这个坐标表示分数的时候，这个值表示分值
-        
-    #自定义了个打印函数
-    def __str__(self):
-        return "(%d, %d)"%(self.x,self.y)
-    
-    def distance(self,p):
-        if math.fabs(self.x-p.x)>math.fabs(self.y-p.y):
-            return math.fabs(self.x-p.x)
-        else:
-            return math.fabs(self.y-p.y)
-    def equals(self,p):
-        return self.x == p.x and self.y == p.y
-    
-    def SymPoint(self):#算中心中心对称点
-        w = gameMap.width
-        h = gameMap.height
-        sx = w-self.x
-        sy = h-self.y
-        return point(sx,sy)
-    
     
     
         
@@ -61,8 +38,13 @@ class AI:
         self.vision=vision
         self.mpoint=point(0,0)
         self.vis_num=0
+        
+        #巡逻点 由 power和returnPower组成
         self.waypoint=[]
         self.powers=[]
+        self.returnPower = []
+        
+        
         self.target=point(0,0)
         self.name=name
         
@@ -109,6 +91,7 @@ class AI:
         #没看过的点 [x,y]
         
         
+        
         if self.name not in db.names:#注册数据库
             db.register(self.name)
         self.unseeList = []
@@ -122,15 +105,14 @@ class AI:
                 self.mpoint=point(pinfo[1],pinfo[2])
                 if self.name in db.returnNames:
                     db.restorePower(self.name)
-                
 
         if not self.isvalid:
             #如果被吃掉，那么就要把自己分配的分数归还，然后重新给其他人分配分数点
-            db.returnPower(self.name)
+            
             print(self.name,"not in current player")
             return   
 
-
+        
             
 
                 
@@ -271,15 +253,18 @@ class AI:
     #state action 在某个状态下做什么事，就在这里写了
     def search(self):
         logger.finfo("%s Do search", self.name)
+       
         #选取unsee点游走
-        
+        logger.ferror("len useelist",self.unseeList)
         if len(self.unseeList):
             print(point(self.unseeList[0][0],self.unseeList[0][1]))
             p = point(self.unseeList[0][0],self.unseeList[0][1])
-            self.goto(p)
+            #self.goto(p)
             logger.finfo(self.target)
             
+            self.eat(p)
             return
+        
         #当搜索过全图以后，选取得分点跑位
         ''' 更新 waypoint  
        
@@ -290,6 +275,7 @@ class AI:
         else:
             self.waypoint.append(db.powers[self.name][1],\
                                  db.powers[self.name][2])
+        '''
         
         print("==============更新过全图================")
         if len(db.returnNames):
@@ -297,11 +283,33 @@ class AI:
             print("returnName[0]",db.returnNames[0])
             print("returnPower: ",db.returnPowers)
             print("returnPower name[0]",db.returnPowers[db.returnNames[0]])
-            print("use returnPower", db.useReturnPower(db.returnNames[0]))
+            for name in db.returnNames:
+                logger.ferror("发现returnNames")
+                if name not in db.useNames:
+                    logger.ferror("发现returnNames没被使用")
+                    rp = db.useReturnPower(name)
+                    for power in rp:
+                        logger.ferror("add return power",power)
+                        self.returnPower.append(point(power[1],power[2]))
+                break
+        else:
+            self.returnPower.clear()
         print(self.name,"db powers:", db.powers[self.name])
-        '''
+        print(self.name,"return power", self.returnPower)
+        logger.ferror("====更新分配点=====")
+        logger.ferror("return names:",db.returnNames)
+        logger.ferror(self.name,"usenames :",db.useNames)
+        logger.ferror(self.name,".returnPower:",self.returnPower)
+        logger.ferror(self.name,".powerpoint:",db.pointPower(db.powers,self.name))
+        
+        logger.ferror("+++++++++++++++++++")
+        
+
+        self.waypoint = db.pointPower(db.powers,self.name)+self.returnPower
+        logger.ferror("+waypoint: +",self.waypoint)
+
         #如果跑位的时候看到分优先吃分
-        self.eat()
+        self.eat(self.waypoint[self.vis_num])
 
         
     def catch(self):
@@ -325,7 +333,7 @@ class AI:
                     self.mCentre = c
             AI.subMapCent.remove(self.mCentre)
             logger.info("%s choose mCentre %s",self.name,self.mCentre)
-        self.waypoint.append(self.mCentre)
+        #self.waypoint.append(self.mCentre)
         
         
         #选取中心点后建立未搜索子图
@@ -351,6 +359,7 @@ class AI:
         elif self.mCentre.equals(point(gameMap.subMap[3][0],gameMap.subMap[3][1])):
             self.subMap = [halfx,halfy,x,y]
             
+        #只有第一回合才有unseelist
         if gameMap.leg == 1:
             for x in range(self.subMap[0],self.subMap[2]):
                 for y in range(self.subMap[1],self.subMap[3]):
@@ -372,6 +381,15 @@ class AI:
         self.stateMachine.run(self.nowTState)
         Do = self.stateAction[self.stateMachine.nowState]
         Do()
+        
+        if self.mpoint.equals(self.target):
+            #print('arrive waypoint ',self.vis_num,' ',self.mpoint.x,' ',self.mpoint.y)
+            logger.info("%s arrive num[%s] waypoint: [%s,%s]",self.name,self.vis_num\
+                        ,self.mpoint.x,self.mpoint.y)
+            self.vis_num=self.vis_num+1
+            if self.vis_num>=len(self.waypoint):
+                self.vis_num=0
+        
         
     def goto(self,p):#这个函数，用来计算target的，回避掉不可达点
         logger.fwarning("goto map ",p,": ",gameMap.map[p.y][p.x])
@@ -405,8 +423,10 @@ class AI:
         self.target.x = p.x
         self.target.y = p.y
         
-    def eat(self):#这个东西放在goto的后面，让游荡的时候优先吃分
+    def eat(self,p=0):#这个东西放在goto的后面，让游荡的时候优先吃分
         logger.info("%s eat!", self.name)
+        if p == 0:
+            p = self.mCentre
         #吃分检测
         for power in self.seePowers:
             if power not in gameMap.curpowers: #吃到分了
@@ -431,14 +451,16 @@ class AI:
             logger.info("%s choose power [%s,%s]",self.name,self.target.x,self.target.y)
             #必须保证waypoints不为空，否则肯定会出错
         else:
+            self.goto(p)
+        '''
             if self.waypoint:#当waypoint不为空才赋值 
                 logger.info("%s target为waypoint坐标",self.name)
-                self.target.x=self.waypoint[self.vis_num].x
-                self.target.y=self.waypoint[self.vis_num].y
+                #self.target.x=self.waypoint[self.vis_num].x
+                #self.target.y=self.waypoint[self.vis_num].y
+                self.goto(self.waypoint[self.vis_num])
             else:#否则就给自己坐标，不动
                 logger.info("%s target为自身坐标",self.name)
-                self.target.x = self.mpoint.x
-                self.target.y = self.mpoint.y
+                self.goto(self.mCentre)
         
         if self.mpoint.equals(self.target):
             #print('arrive waypoint ',self.vis_num,' ',self.mpoint.x,' ',self.mpoint.y)
@@ -447,6 +469,7 @@ class AI:
             self.vis_num=self.vis_num+1
             if self.vis_num>=len(self.waypoint):
                 self.vis_num=0
+        '''
         
         
         
