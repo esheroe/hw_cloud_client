@@ -101,15 +101,14 @@ class AI:
         self.isvalid=False
         for pinfo in gameMap.ourCurrentPlayer:
             if pinfo[0]==self.id:
+                logger.ferror(self.name," is alive+++++++++++++++")
                 self.isvalid=True
                 self.mpoint=point(pinfo[1],pinfo[2])
-                if self.name in db.returnNames:
-                    db.restorePower(self.name)
 
         if not self.isvalid:
             #如果被吃掉，那么就要把自己分配的分数归还，然后重新给其他人分配分数点
-            
-            print(self.name,"not in current player")
+            db.returnPower(self.name)
+            logger.ferror(self.name,"not in current player-----------------")
             return   
 
         
@@ -120,13 +119,11 @@ class AI:
         for power in self.seePowers:
             if power not in db.powers[self.name]:
                 p = point(power[1],power[2],power[0])
-                logger.finfo("update power: ", p,p.power)
                 p2 = copy.deepcopy(power)
                 db.updatePower(self.name,p2)
-        if self.name == 'stupid':
-            logger.ferror("db all power: ",db.allPowers)
 
-        logger.ferror(self.name,"db power: ",db.powers[self.name])
+
+
         
         
 
@@ -159,16 +156,9 @@ class AI:
                     if [x,y] in self.unseeList:
                         self.unseeList.remove([x,y])
             AI.unseeMap[self.mpoint.y][self.mpoint.x] = 2;
-            if (self.name == 'git'):
-                logger.finfo("=== unsee map ===")
-                for i in range(len(AI.unseeMap)):
-                    logger.finfo(AI.unseeMap[i])
             
-                logger.finfo("===%s update unseeList===")
-                logger.finfo(AI.allUnseeList)
-                
-            logger.finfo("===",self.name,"unsee List===")
-            logger.finfo(self.unseeList)
+
+
         #todo unseenlist 还有重叠部分，除了自己看到以外，别人也有可能看到，因此需要同步更新
         
         
@@ -255,61 +245,27 @@ class AI:
         logger.finfo("%s Do search", self.name)
        
         #选取unsee点游走
-        logger.ferror("len useelist",self.unseeList)
         if len(self.unseeList):
             print(point(self.unseeList[0][0],self.unseeList[0][1]))
             p = point(self.unseeList[0][0],self.unseeList[0][1])
             #self.goto(p)
-            logger.finfo(self.target)
             
             self.eat(p)
             return
         
         #当搜索过全图以后，选取得分点跑位
-        ''' 更新 waypoint  
-       
-        if len(db.returnNames):#添加 returnpowers到waypoint里去
-            rn = db.returnNames[0]
-            self.waypoint.append(db.returnPowers[rn][1],\
-                                 db.returnPowers[rn][2])
-        else:
-            self.waypoint.append(db.powers[self.name][1],\
-                                 db.powers[self.name][2])
-        '''
         
         print("==============更新过全图================")
-        if len(db.returnNames):
-            print("returnName:", db.returnNames)
-            print("returnName[0]",db.returnNames[0])
-            print("returnPower: ",db.returnPowers)
-            print("returnPower name[0]",db.returnPowers[db.returnNames[0]])
-            for name in db.returnNames:
-                logger.ferror("发现returnNames")
-                if name not in db.useNames:
-                    logger.ferror("发现returnNames没被使用")
-                    rp = db.useReturnPower(name)
-                    for power in rp:
-                        logger.ferror("add return power",power)
-                        self.returnPower.append(point(power[1],power[2]))
-                break
-        else:
-            self.returnPower.clear()
-        print(self.name,"db powers:", db.powers[self.name])
-        print(self.name,"return power", self.returnPower)
-        logger.ferror("====更新分配点=====")
-        logger.ferror("return names:",db.returnNames)
-        logger.ferror(self.name,"usenames :",db.useNames)
-        logger.ferror(self.name,".returnPower:",self.returnPower)
-        logger.ferror(self.name,".powerpoint:",db.pointPower(db.powers,self.name))
-        
-        logger.ferror("+++++++++++++++++++")
+      
+
         
 
-        self.waypoint = db.pointPower(db.powers,self.name)+self.returnPower
-        logger.ferror("+waypoint: +",self.waypoint)
+        #self.waypoint = db.pointPower(db.powers,self.name)+self.returnPower
+
+        
 
         #如果跑位的时候看到分优先吃分
-        self.eat(self.waypoint[self.vis_num])
+        self.eat()
 
         
     def catch(self):
@@ -365,8 +321,6 @@ class AI:
                 for y in range(self.subMap[1],self.subMap[3]):
                     if AI.unseeMap[y][x] == 0:
                         self.unseeList.append([x,y])
-            logger.finfo("===%s unseeList===",self.name)
-            logger.finfo(self.unseeList)
     # end def start()
         
             
@@ -377,7 +331,6 @@ class AI:
         #测试序列 理论上转移 origin state-> SEARCH_STATE -> CATCH -> RUNAWAY_STATE
         #test_queue = [(self.t.P | self.t.SEE),(self.t.P | self.t.SEE | self.t.BIGFISH),self.t.SEE]
 
-        logger.finfo(self.name," nowTState: ",self.nowTState)
         self.stateMachine.run(self.nowTState)
         Do = self.stateAction[self.stateMachine.nowState]
         Do()
