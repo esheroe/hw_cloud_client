@@ -11,6 +11,7 @@ from ballclient.service.Log import logger
 from ballclient.service.SharedDataBase import db #共享数据库
 from ballclient.service.SharedDataBase import point #共享数据库
 
+import random
 import math
 import copy
 
@@ -112,20 +113,15 @@ class AI:
             return   
 
         
-            
 
                 
         '''更新 db power'''
         for power in self.seePowers:
             if power not in db.powers[self.name]:
-                p = point(power[1],power[2],power[0])
                 p2 = copy.deepcopy(power)
                 db.updatePower(self.name,p2)
 
 
-
-        
-        
 
 
         '''更新状态'''
@@ -334,14 +330,7 @@ class AI:
         self.stateMachine.run(self.nowTState)
         Do = self.stateAction[self.stateMachine.nowState]
         Do()
-        
-        if self.mpoint.equals(self.target):
-            #print('arrive waypoint ',self.vis_num,' ',self.mpoint.x,' ',self.mpoint.y)
-            logger.info("%s arrive num[%s] waypoint: [%s,%s]",self.name,self.vis_num\
-                        ,self.mpoint.x,self.mpoint.y)
-            self.vis_num=self.vis_num+1
-            if self.vis_num>=len(self.waypoint):
-                self.vis_num=0
+
         
         
     def goto(self,p):#这个函数，用来计算target的，回避掉不可达点
@@ -379,7 +368,11 @@ class AI:
     def eat(self,p=0):#这个东西放在goto的后面，让游荡的时候优先吃分
         logger.info("%s eat!", self.name)
         if p == 0:
-            p = self.mCentre
+            pointer = random.randint(0,len(gameMap.powers)-1)
+            pp = gameMap.powers[pointer]
+            p = point(pp[1],pp[2])
+            #p = self.mCentre
+            
         #吃分检测
         for power in self.seePowers:
             if power not in gameMap.curpowers: #吃到分了
@@ -392,7 +385,6 @@ class AI:
                     self.seePowers.append(cur_power)
                     gameMap.curpowers.remove(cur_power) #从中取走这个点，避免和其他机器人冲突
                 #print ("new ",self.name,": ",cur_power)
-                logger.info("new %s: %s",self.name,cur_power)
                 #print("gCurpowers:",gameMap.curpowers)
                 break
         
@@ -401,28 +393,10 @@ class AI:
             self.target.y=self.seePowers[0][2]
             #logger.info("%s target [%s,%s]",)
             #print(self.target.y,'choose  power',self.target.x,self.name)
-            logger.info("%s choose power [%s,%s]",self.name,self.target.x,self.target.y)
             #必须保证waypoints不为空，否则肯定会出错
         else:
             self.goto(p)
-        '''
-            if self.waypoint:#当waypoint不为空才赋值 
-                logger.info("%s target为waypoint坐标",self.name)
-                #self.target.x=self.waypoint[self.vis_num].x
-                #self.target.y=self.waypoint[self.vis_num].y
-                self.goto(self.waypoint[self.vis_num])
-            else:#否则就给自己坐标，不动
-                logger.info("%s target为自身坐标",self.name)
-                self.goto(self.mCentre)
-        
-        if self.mpoint.equals(self.target):
-            #print('arrive waypoint ',self.vis_num,' ',self.mpoint.x,' ',self.mpoint.y)
-            logger.info("%s arrive num[%s] waypoint: [%s,%s]",self.name,self.vis_num\
-                        ,self.mpoint.x,self.mpoint.y)
-            self.vis_num=self.vis_num+1
-            if self.vis_num>=len(self.waypoint):
-                self.vis_num=0
-        '''
+
         
         
         

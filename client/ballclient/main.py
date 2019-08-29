@@ -11,7 +11,7 @@ from ballclient.service.Log import logger
 
 if __name__ == "__main__":
     print (sys.argv)    
-    logger.setLevel(50) #FATAL=50 ERROR=40 WARNING=30 INFO=20
+    logger.setLevel(20) #FATAL=50 ERROR=40 WARNING=30 INFO=20
     logger.setFLevel(30)
     # 用于本地测试
     # sys.argv = [b'gameclient.bat', b'3206', b'127.0.0.1' ,b'6001']
