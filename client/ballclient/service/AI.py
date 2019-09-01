@@ -10,6 +10,9 @@ from ballclient.service.StateMachine import *
 from ballclient.service.Log import logger
 from ballclient.service.SharedDataBase import db #共享数据库
 from ballclient.service.SharedDataBase import point #共享数据库
+from ballclient.service.SharedDataBase import Vector #向量
+import time
+
 
 import random
 import math
@@ -52,6 +55,11 @@ class AI:
         #保存看到过但还没吃的分值 
         self.seePowers = []
         
+        #看到的敌方位置 {'now':[[id,x,y,score],[...]], 'last':[[id,x,y,score,[...]]}
+        self.seeOpp    = {}
+        self.seeOpp['now'] = []
+        self.seeOpp['last']= []
+        
         #状态转移条件
 
         self.nowTState = 0 # P|SEE 
@@ -90,7 +98,7 @@ class AI:
         self.subMap = []
         
         #没看过的点 [x,y]
-        
+        self.next = True
         
         
         if self.name not in db.names:#注册数据库
@@ -98,8 +106,14 @@ class AI:
         self.unseeList = []
         AI.allUnseeList.append(self.unseeList)
         
+        #逃跑
+        self.a_star = A_Star(0, 0, 0, 0,gameMap.height,gameMap.width)
+        self.isRunaway = False
+        self.enlargeOpp = []
+        
     def update(self):
         self.isvalid=False
+        self.isRunaway = False
         for pinfo in gameMap.ourCurrentPlayer:
             if pinfo[0]==self.id:
                 logger.ferror(self.name," is alive+++++++++++++++")
@@ -111,16 +125,15 @@ class AI:
             db.returnPower(self.name)
             logger.ferror(self.name,"not in current player-----------------")
             return   
-
         
-
+        
+        
+        '''更新敌方位置信息'''
+        print("-----------更新敌方位置信息-----------")
+        self.seeOpp['last'] = copy.deepcopy(self.seeOpp['now'])
+        self.seeOpp['now'].clear()
                 
-        '''更新 db power'''
-        for power in self.seePowers:
-            if power not in db.powers[self.name]:
-                p2 = copy.deepcopy(power)
-                db.updatePower(self.name,p2)
-
+        
 
 
 
@@ -134,8 +147,11 @@ class AI:
         for opp in gameMap.oppPlayer:
             if self.mpoint.distance(point(opp[1],opp[2])) <= self.vision:
                 self.nowTState |= self.t.SEE     #看到敌人了
+                self.seeOpp['now'].append(opp)   #更新敌方位置信息
                 if opp[3] >= 20:                     #大于20分的敌人认为是大鱼
                     self.nowTState |= self.t.BIGFISH #看到大鱼了
+        print(self.name, "see opp: ",self.seeOpp)
+
         
         '''更新unsee地图'''
         v = self.vision
@@ -155,8 +171,10 @@ class AI:
             
 
 
-        #todo unseenlist 还有重叠部分，除了自己看到以外，别人也有可能看到，因此需要同步更新
-        
+        '''到达点判断'''        
+        if self.mpoint.equals(self.target):
+            self.next = True
+            
         
         #状态转移
     def origin_transition(self,TState):
@@ -245,31 +263,89 @@ class AI:
             print(point(self.unseeList[0][0],self.unseeList[0][1]))
             p = point(self.unseeList[0][0],self.unseeList[0][1])
             #self.goto(p)
-            
+            logger.finfo("%s unsee eat", self.name)
+
             self.eat(p)
             return
         
-        #当搜索过全图以后，选取得分点跑位
-        
-        print("==============更新过全图================")
-      
-
-        
-
-        #self.waypoint = db.pointPower(db.powers,self.name)+self.returnPower
-
-        
-
+        #当搜索过全图以后，选取得分点跑位      
+        print(self.name,"==============更新过全图================")
         #如果跑位的时候看到分优先吃分
         self.eat()
-
+        
         
     def catch(self):
         logger.info("%s Do catch", self.name)
         
     def runaway(self):
         logger.info("%s Do runaway", self.name)
-        #simple runaway 
+        self.isRunaway = True
+        '''计算逃逸向量'''
+        '''
+        
+        runVector = Vector(0,0)
+        #列表转point 
+        opp_p = []
+        for opp in self.seeOpp['now']:
+            pp = point(opp[1],opp[2])
+            opp_p.append(pp)
+        
+        #敌方到自己的向量加和
+        for opp in opp_p:
+            v = opp.pointTo(self.mpoint)
+            runVector = runVector.normPlus(v)
+            
+        #做撞墙判断
+        
+        wall2m = Vector(0,0)#墙到自己的向量
+        epi = 3 #距离多少开始做撞墙检测
+        if self.mpoint.x - 0 <= epi:#上边
+            wall2m = point(self.mpoint.x,0).pointTo(self.mpoint)
+        elif gameMap.width - self.mpoint.x <= epi:#右边
+            wall2m = point(gameMap.width,self.mpoint.y).pointTo(self.mpoint)
+        elif self.mpoint.y - 0 <= epi:#左边
+            wall2m = point(0,self.mpoint.y).pointTo(self.mpoint)
+        elif gameMap.height - self.mpoint.y <= epi:#下边
+            wall2m = point(self.mpoint.x,gameMap.height).pointTo(self.mpoint)
+        
+        runVector = runVector.normPlus(wall2m)
+
+        
+        #共线向量处理
+        preDictPoint = self.mpoint.alongVector(runVector)
+        '''
+        
+        #膨胀敌人
+        self.enlargeOpp = []
+        for opp in self.seeOpp['now']:
+            self.enlargeOpp.append([opp[1],opp[2]])
+            self.enlargeOpp.append([opp[1]-1,opp[2]-1])
+            self.enlargeOpp.append([opp[1],opp[2]-1])
+            self.enlargeOpp.append([opp[1]+1,opp[2]-1])
+            self.enlargeOpp.append([opp[1]-1,opp[2]])
+            self.enlargeOpp.append([opp[1]+1,opp[2]])
+            self.enlargeOpp.append([opp[1]-1,opp[2]+1])
+            self.enlargeOpp.append([opp[1],opp[2]+1])
+            self.enlargeOpp.append([opp[1]+1,opp[2]+1])
+        
+        #去掉边界点
+        enlargecp = copy.deepcopy(self.enlargeOpp)
+        for opp in enlargecp:
+            print("扫描到的opp：",opp)
+            if opp[0] < 0 or opp[1] > 19 or opp[0] > 19 or opp[1] < 0:
+                while opp in self.enlargeOpp:
+                    self.enlargeOpp.remove(opp)
+        
+        preDictPoint = point(0,0)
+        for p in gameMap.powers:
+            pp = point(p[1],p[2])
+            opp = self.seeOpp['now'][0]
+            oppp = point(opp[1],opp[2])
+            if pp.distance(oppp) > 5:
+                preDictPoint = pp
+                break
+        self.goto(preDictPoint)
+        
         
         
     #这个函数理论上只在leg start的时候执行，所以在这里分裂子图，初始化搜索
@@ -330,11 +406,24 @@ class AI:
         self.stateMachine.run(self.nowTState)
         Do = self.stateAction[self.stateMachine.nowState]
         Do()
+        logger.info("after Do")
 
+        
+        if self.isRunaway:
+            return self.a_star.find_run_path(self.mpoint.x,self.mpoint.y,\
+                                             self.target.x,self.target.y,\
+                                             self.name,self.enlargeOpp)
+            
+
+        else:
+            
+            return self.a_star.find_path(self.mpoint.x,self.mpoint.y,self.target.x,self.target.y,self.name)
+        
         
         
     def goto(self,p):#这个函数，用来计算target的，回避掉不可达点
         logger.fwarning("goto map ",p,": ",gameMap.map[p.y][p.x])
+        logger.info("goto")
 
         while 30 > gameMap.map[p.y][p.x] > 6:
             '''
@@ -356,28 +445,31 @@ class AI:
             dx = 1 if halfx-p.x>0 else -1
             dy = 1 if halfy-p.y>0 else -1
             if point(halfx,halfy).distance(p) < 3:
-                dx = -dx
-                dy = -dy
+                dx = -dx*3
+                dy = -dy*3
             p.x += dx
             p.y += dy
         logger.fwarning("goto :",p)
-                
         self.target.x = p.x
         self.target.y = p.y
         
     def eat(self,p=0):#这个东西放在goto的后面，让游荡的时候优先吃分
         logger.info("%s eat!", self.name)
         if p == 0:
-            pointer = random.randint(0,len(gameMap.powers)-1)
-            pp = gameMap.powers[pointer]
-            p = point(pp[1],pp[2])
+            if self.next:
+                
+                pointer = random.randint(0,len(gameMap.powers)-1)
+                pp = gameMap.powers[pointer]
+                p = point(pp[1],pp[2])
+                self.next = False
+            else:
+                p = self.target
             #p = self.mCentre
-            
         #吃分检测
         for power in self.seePowers:
             if power not in gameMap.curpowers: #吃到分了
                 self.seePowers.remove(power)
-                
+        
         #todo 我想把power all放在这个里面来，但是放进来后机器人就不动了，暂时没找到bug在哪    
         for cur_power in gameMap.curpowers:
             if(self.mpoint.distance(point(cur_power[1],cur_power[2])) <= self.vision):
@@ -387,10 +479,12 @@ class AI:
                 #print ("new ",self.name,": ",cur_power)
                 #print("gCurpowers:",gameMap.curpowers)
                 break
-        
+
         if len(self.seePowers):
+
             self.target.x=self.seePowers[0][1]
             self.target.y=self.seePowers[0][2]
+
             #logger.info("%s target [%s,%s]",)
             #print(self.target.y,'choose  power',self.target.x,self.name)
             #必须保证waypoints不为空，否则肯定会出错
@@ -430,34 +524,42 @@ class Team:
         self.git.update()
         
     def process(self):
+        start = time.clock()
+
+
         self.update()
-        #self.power_all()
-        self.stupid.run()
-        self.idiot.run()
-        self.fool.run()
-        self.git.run()
         action=[]
         if self.stupid.isvalid:
-            action.append(self.a_star.find_path(self.stupid.mpoint.x,self.stupid.mpoint.y,self.stupid.target.x,self.stupid.target.y,self.stupid.name))
+            action.append(self.stupid.run()) 
+            elapsed = (time.clock() - start)
+            print("Time used:",elapsed)
         else:
             action.append(0)
                 
         if self.idiot.isvalid:
-            action.append(self.a_star.find_path(self.idiot.mpoint.x,self.idiot.mpoint.y,self.idiot.target.x,self.idiot.target.y,self.idiot.name))
+            action.append(self.idiot.run())   
+            elapsed = (time.clock() - start)
+            print("Time used:",elapsed)
         else:
             action.append(0)
             
         if self.fool.isvalid:
-            action.append(self.a_star.find_path(self.fool.mpoint.x,self.fool.mpoint.y,self.fool.target.x,self.fool.target.y,self.fool.name))
+            action.append(self.fool.run())    
+            elapsed = (time.clock() - start)
+            print("Time used:",elapsed)
         else:
             action.append(0)
             
         if self.git.isvalid:
-            action.append(self.a_star.find_path(self.git.mpoint.x,self.git.mpoint.y,self.git.target.x,self.git.target.y,self.git.name))
+            action.append(self.git.run())   
+            elapsed = (time.clock() - start)
+            print("Time used:",elapsed)
         else:
             action.append(0)
         return action
-        
+        #当中是你的程序
+
+
 
         
         

@@ -35,6 +35,94 @@ class point:
         sy = h-self.y
         return point(sx,sy)
     
+    def pointTo(self,p):
+        x = p.x - self.x
+        y = p.y - self.y
+        return Vector(x,y)
+    
+    def alongVector(self,v):
+        weight = 0
+        if math.fabs(v.x) > math.fabs(v.y):
+            weight = 1/math.fabs(v.x)
+        else:
+            weight = 1/math.fabs(v.y)
+        v.weighting(weight)
+        x = self.x
+        y = self.y
+        while x > 0 and x < 19 and y > 0 and y < 19:
+            x += v.x
+            y += v.y
+        
+        return point(int(x),int(y))
+
+class Vector:
+    def __init__(self,x,y):        
+        self.x = x
+        self.y = y
+        
+    
+    def plus(self,v):
+        x = self.x + v.x
+        y = self.y + v.y
+        return Vector(x,y)
+    
+    
+    def weighting(self,weight):#算加权
+        self.x = self.x * weight
+        self.y = self.y * weight
+        
+    def length(self):
+        eps = 1e-20        #防止零向量计算模长的除零计算error
+        return math.sqrt(pow(self.x,2)+pow(self.y,2))+eps
+    
+    def dotMul(self,v):#点乘
+        return self.x*v.x + self.y*v.y
+    
+    def xMul(self,v):#叉乘
+        return self.x*v.y - self.y*v.x
+    
+    def angleWith(self,v):
+        cos_theta = self.dotMul(v) / (self.length()*v.length()) 
+        if cos_theta > 1: 
+            cos_theta = 1
+        elif cos_theta < -1:
+            cos_theta = -1
+        
+        r = math.acos(cos_theta)
+        return math.degrees(r)
+    
+    def norm(self):
+        x = self.x/self.length()
+        y = self.y/self.length()
+        return Vector(x,y)
+    
+    def normPlus(self,v):
+        if self.isParallel(v):
+            if self.dotMul(v) < 0:
+                v.y = v.y + 0.00001
+                print("反向相加")
+        return self.norm().plus(v.norm())
+    
+    def vertical(self):
+        x = (-self.y)
+        y = self.x
+        return Vector(x,y)
+    
+    def isParallel(self,v):
+        return self.xMul(v) == 0
+    
+    def isVertical(self,v):
+        return self.dotMul(v) == 0
+ 
+'''   
+v1 = Vector(1,1)
+v2 = Vector(3,3)
+v3 = v1.plus(v2)
+v4 = Vector(3,1)  
+v5 = Vector(-3,-1)
+'''
+    
+    
 
 
 #共享数据库，每个legstart AI类的东西都会清空，用这个保存所有的数据

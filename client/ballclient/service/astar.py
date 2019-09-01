@@ -6,6 +6,7 @@ Created on Tue Aug 20 21:46:41 2019
 """
 # -*- coding: utf-8 -*-
 import math
+import copy
 from ballclient.service.GameMap import gameMap as gameMap
 #地图
 test_map = [
@@ -149,7 +150,7 @@ class A_Star:
         p=self.gridmap[self.s_y][self.s_x]
         while True:
             #扩展F值最小的节点
-            self.extend_round(p)
+            self.extend_round(p,self.gridmap)
             #如果开放列表为空，则不存在路径，返回0，表示停止不动
             if not self.open:
                 print('nopath')
@@ -165,7 +166,57 @@ class A_Star:
             #把此节点压入关闭列表，并从开放列表里删除
             self.close.append(p)
             del self.open[idx]
+    
+    def find_run_path(self,s_x,s_y,e_x,e_y,name,opps):
+        self.resetmap()
+        runMap = copy.deepcopy(self.gridmap)
+        
+        print("find_run_path!!!")
+        for opp in opps:
+            print("opp: ",opp)
+            print("self: ",self.gridmap[opp[1]][opp[0]].value)
+            print("runmap: ",runMap[opp[1]][opp[0]].value)# = 8
+            runMap[opp[1]][opp[0]].value = 8
+        print("176")
+        #构建开始节点  
+        self.s_x=s_x
+        self.s_y=s_y
+        self.e_x=e_x
+        self.e_y=e_y
+        print(name,'find path',self.s_y,' ',self.s_x,'  ',self.e_y,'  ',self.e_x)
+        if self.s_x==self.e_x and self.s_y==self.e_y:
+            print(self.s_y,'arrive',self.s_x)
+            return 0
+        if self.gridmap[self.s_y][self.s_x].value==8 or self.gridmap[self.e_y][self.e_x].value==8:
+            print('obstacle')
+            return 0
+        if self.gridmap[self.s_y][self.s_x].value<24 and self.gridmap[self.s_y][self.s_x].value>=20:
+            print(self.s_y,'start tunnel',self.s_x)
+            return 0
+        if self.gridmap[self.e_y][self.e_x].value<24 and self.gridmap[self.e_y][self.e_x].value>=20:
+            print(self.e_y,'end tunnel',self.e_x)
+            return 0
+        print("195")
 
+        p=self.gridmap[self.s_y][self.s_x]
+        while True:
+            #扩展F值最小的节点
+            self.extend_round(p,runMap)
+            #如果开放列表为空，则不存在路径，返回0，表示停止不动
+            if not self.open:
+                print('nopath')
+                return 0
+            #获取F值最小的节点
+            idx, p = self.get_best()
+            #找到路径，生成路径，返回
+            if self.is_target(p):
+                print(self.e_y,'find path',self.e_x)
+                self.make_path(p)
+                node=self.path[len(self.path)-1]
+                return node.action
+            #把此节点压入关闭列表，并从开放列表里删除
+            self.close.append(p)
+            del self.open[idx]
     
 
     def make_path(self,p):
@@ -196,7 +247,7 @@ class A_Star:
         # 这个公式就是A*算法的精华了。
         return i.dist + math.fabs(self.e_x-i.x)+ math.fabs(self.e_y-i.y)
         
-    def extend_round(self, p):
+    def extend_round(self, p, map_):
         #可以从5个方向走,上下左右停
         xs = (0, 0, -1, 1, 0)
         ys = (-1, 1, 0, 0, 0)
@@ -216,7 +267,7 @@ class A_Star:
             if not self.is_valid_coord(new_x, new_y):
                 continue
             #构造新的节点
-            node=self.gridmap[new_y][new_x]
+            node=map_[new_y][new_x]
             if node.value==8:
                 continue
             #新节点在关闭列表，则忽略
