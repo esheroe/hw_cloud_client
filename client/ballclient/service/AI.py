@@ -31,8 +31,9 @@ class AI:
     unseeMap   = []
     
     allUnseeList = []
-        
-    #stuipid数据
+    
+    aimID = -1
+    oppID = []
 
     '''共享变量END'''
     
@@ -148,9 +149,8 @@ class AI:
             if self.mpoint.distance(point(opp[1],opp[2])) <= self.vision:
                 self.nowTState |= self.t.SEE     #看到敌人了
                 self.seeOpp['now'].append(opp)   #更新敌方位置信息
-                if opp[3] >= 20:                     #大于20分的敌人认为是大鱼
+                if opp[3] >= 100:                     #大于20分的敌人认为是大鱼
                     self.nowTState |= self.t.BIGFISH #看到大鱼了
-        print(self.name, "see opp: ",self.seeOpp)
 
         
         '''更新unsee地图'''
@@ -260,7 +260,7 @@ class AI:
        
         #选取unsee点游走
         if len(self.unseeList):
-            print(point(self.unseeList[0][0],self.unseeList[0][1]))
+            #print(point(self.unseeList[0][0],self.unseeList[0][1]))
             p = point(self.unseeList[0][0],self.unseeList[0][1])
             #self.goto(p)
             logger.finfo("%s unsee eat", self.name)
@@ -277,6 +277,11 @@ class AI:
     def catch(self):
         logger.info("%s Do catch", self.name)
         
+
+        p = self.seeOpp['now'][0]
+        catchPoint = point(p[1],p[2])
+        
+        self.goto(catchPoint)
     def runaway(self):
         logger.info("%s Do runaway", self.name)
         self.isRunaway = True
@@ -319,19 +324,27 @@ class AI:
         self.enlargeOpp = []
         for opp in self.seeOpp['now']:
             self.enlargeOpp.append([opp[1],opp[2]])
-            self.enlargeOpp.append([opp[1]-1,opp[2]-1])
+            #self.enlargeOpp.append([opp[1]-1,opp[2]-1])
             self.enlargeOpp.append([opp[1],opp[2]-1])
-            self.enlargeOpp.append([opp[1]+1,opp[2]-1])
+            #self.enlargeOpp.append([opp[1]+1,opp[2]-1])
             self.enlargeOpp.append([opp[1]-1,opp[2]])
             self.enlargeOpp.append([opp[1]+1,opp[2]])
-            self.enlargeOpp.append([opp[1]-1,opp[2]+1])
+            #self.enlargeOpp.append([opp[1]-1,opp[2]+1])
             self.enlargeOpp.append([opp[1],opp[2]+1])
-            self.enlargeOpp.append([opp[1]+1,opp[2]+1])
+            #self.enlargeOpp.append([opp[1]+1,opp[2]+1])
+        
+        for our in gameMap.ourCurrentPlayer:
+            print("our: ", our)
+            op = point(our[1],our[2])
+            if not self.mpoint.equals(op):
+                print("mpoint: ",self.mpoint)
+                print("op: ",op)
+                self.enlargeOpp.append([our[1],our[2]])
+        
         
         #去掉边界点
         enlargecp = copy.deepcopy(self.enlargeOpp)
         for opp in enlargecp:
-            print("扫描到的opp：",opp)
             if opp[0] < 0 or opp[1] > 19 or opp[0] > 19 or opp[1] < 0:
                 while opp in self.enlargeOpp:
                     self.enlargeOpp.remove(opp)
@@ -344,6 +357,7 @@ class AI:
             if pp.distance(oppp) > 5:
                 preDictPoint = pp
                 break
+        print("run away point: ", preDictPoint)
         self.goto(preDictPoint)
         
         
@@ -413,11 +427,11 @@ class AI:
             return self.a_star.find_run_path(self.mpoint.x,self.mpoint.y,\
                                              self.target.x,self.target.y,\
                                              self.name,self.enlargeOpp)
-            
-
         else:
             
-            return self.a_star.find_path(self.mpoint.x,self.mpoint.y,self.target.x,self.target.y,self.name)
+            return self.a_star.find_path(self.mpoint.x,self.mpoint.y,\
+                                         self.target.x,self.target.y,\
+                                         self.name)
         
         
         
@@ -457,13 +471,16 @@ class AI:
         logger.info("%s eat!", self.name)
         if p == 0:
             if self.next:
-                
-                pointer = random.randint(0,len(gameMap.powers)-1)
-                pp = gameMap.powers[pointer]
-                p = point(pp[1],pp[2])
+                (p,pointer) = self.getRandomPoint()
                 self.next = False
             else:
                 p = self.target
+        
+        if not gameMap.isOurPower:
+            for opp in gameMap.oppPlayer :
+                while p.distance(point(opp[1],opp[2])) <= 1 and \
+                pointer < len(gameMap.powers):
+                    (p,pointer) = self.getRandomPoint(pointer)
             #p = self.mCentre
         #吃分检测
         for power in self.seePowers:
@@ -491,7 +508,12 @@ class AI:
         else:
             self.goto(p)
 
-        
+    def getRandomPoint(self,pointer = 0):
+        if pointer == 0:
+            pointer = random.randint(0,len(gameMap.powers)-1)
+        pp = gameMap.powers[pointer]
+        p = point(pp[1],pp[2])
+        return p,pointer
         
         
         
@@ -524,40 +546,39 @@ class Team:
         self.git.update()
         
     def process(self):
-        start = time.clock()
+        #start = time.clock()
 
 
         self.update()
         action=[]
         if self.stupid.isvalid:
             action.append(self.stupid.run()) 
-            elapsed = (time.clock() - start)
-            print("Time used:",elapsed)
+            #elapsed = (time.clock() - start)
+            #print("Time used:",elapsed)
         else:
             action.append(0)
                 
         if self.idiot.isvalid:
             action.append(self.idiot.run())   
-            elapsed = (time.clock() - start)
-            print("Time used:",elapsed)
+            #elapsed = (time.clock() - start)
+            #print("Time used:",elapsed)
         else:
             action.append(0)
             
         if self.fool.isvalid:
             action.append(self.fool.run())    
-            elapsed = (time.clock() - start)
-            print("Time used:",elapsed)
+            #elapsed = (time.clock() - start)
+            #print("Time used:",elapsed)
         else:
             action.append(0)
             
         if self.git.isvalid:
             action.append(self.git.run())   
-            elapsed = (time.clock() - start)
-            print("Time used:",elapsed)
+            #elapsed = (time.clock() - start)
+            #print("Time used:",elapsed)
         else:
             action.append(0)
         return action
-        #当中是你的程序
 
 
 

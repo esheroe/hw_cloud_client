@@ -54,7 +54,7 @@ class GameMap(object):
         
         #子图的中点坐标[[x1,y1],[x2,y2] ... ]
         self.subMap       = []
-        self.leg          = 0#表示第几个回合
+        self.leg          = 0   #表示第几个回合
         
     def printAll(self):
         print ('h:',self.height,'w:',self.width)

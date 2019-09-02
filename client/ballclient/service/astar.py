@@ -173,11 +173,7 @@ class A_Star:
         
         print("find_run_path!!!")
         for opp in opps:
-            print("opp: ",opp)
-            print("self: ",self.gridmap[opp[1]][opp[0]].value)
-            print("runmap: ",runMap[opp[1]][opp[0]].value)# = 8
             runMap[opp[1]][opp[0]].value = 8
-        print("176")
         #构建开始节点  
         self.s_x=s_x
         self.s_y=s_y
@@ -196,7 +192,6 @@ class A_Star:
         if self.gridmap[self.e_y][self.e_x].value<24 and self.gridmap[self.e_y][self.e_x].value>=20:
             print(self.e_y,'end tunnel',self.e_x)
             return 0
-        print("195")
 
         p=self.gridmap[self.s_y][self.s_x]
         while True:
